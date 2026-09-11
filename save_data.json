@@ -1,0 +1,22 @@
+{
+  "slots": [
+    {
+      "level": 1,
+      "player_x": 970,
+      "player_y": 670,
+      "exists": true
+    },
+    {
+      "level": 1,
+      "player_x": 100,
+      "player_y": 400,
+      "exists": false
+    },
+    {
+      "level": 1,
+      "player_x": 100,
+      "player_y": 400,
+      "exists": false
+    }
+  ]
+}
