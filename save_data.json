@@ -2,15 +2,15 @@
   "slots": [
     {
       "level": 1,
-      "player_x": 970,
-      "player_y": 670,
+      "player_x": 561,
+      "player_y": 1435,
       "exists": true
     },
     {
       "level": 1,
       "player_x": 100,
-      "player_y": 400,
-      "exists": false
+      "player_y": 685,
+      "exists": true
     },
     {
       "level": 1,

@@ -44,9 +44,9 @@ class SaveManager:
     def default_data(self):
         return {
             "slots": [
-                {"level": 1, "player_x": 100, "player_y": 400, "exists": False},
-                {"level": 1, "player_x": 100, "player_y": 400, "exists": False},
-                {"level": 1, "player_x": 100, "player_y": 400, "exists": False},
+                {"level": 1, "player_x": 100, "player_y": 700, "exists": False},
+                {"level": 1, "player_x": 100, "player_y": 700, "exists": False},
+                {"level": 1, "player_x": 100, "player_y": 700, "exists": False},
             ]
         }
 
@@ -67,7 +67,7 @@ class SaveManager:
         self.data["slots"][index] = {
             "level": 1,
             "player_x": 100,
-            "player_y": 400,
+            "player_y": 700,
             "exists": False,
         }
         self.save()

@@ -9,7 +9,7 @@ class Camera:
         self.targetX = 0
         self.targetY = 0
         self.isTrans = False
-        self.transSpeed = 0.08 # put it as a lower number for smoother transitions (i love lerp - dw abt it)
+        self.transSpeed = 0.05 # put it as a lower number for smoother transitions (i love lerp - dw abt it)
 
     def targetRoom(self, roomRect):
         self.targetX = roomRect.x
@@ -29,9 +29,9 @@ class Camera:
             self.x += (self.targetX - self.x) * self.transSpeed
             self.y += (self.targetY - self.y) * self.transSpeed
 
-            if abs(self.targetX - self.x) < 0.5:
+            if abs(self.targetX - self.x) < 5.0:
                 self.x = self.targetX
-            if abs(self.targetY - self.y) < 0.5:
+            if abs(self.targetY - self.y) < 5.0:
                 self.y = self.targetY
         else:
             self.isTrans = False

@@ -3,6 +3,7 @@ import sys
 from player import Player # type: ignore
 from saveManager import SaveManager, Button # type: ignore
 from camera import Camera #type: ignore
+from hackTerminal import Terminal #type: ignore
 #imma be honest, idk why the three things above are that bugged lol
 
 pygame.init()
@@ -23,6 +24,8 @@ LIGHT_RED = (255, 100, 100)
 GREEN = (50, 200, 50)
 LIGHT_GREEN = (100, 255, 100)
 YELLOW = (255, 220, 50)
+PURPLE = (128, 0, 128)
+LIGHT_PURPLE = (203, 195, 227)
 
 title_font = pygame.font.Font(None, 70)
 menu_font = pygame.font.Font(None, 45)
@@ -37,6 +40,9 @@ MENU = "menu"
 LEVEL_SELECT = "level_select"
 PLAYING = "playing"
 PAUSED = "paused"
+HACKING = "hacking"
+
+PREVIOUS_STATE = PLAYING
 
 DIRECTION_KEYS = {
     "left": [pygame.K_LEFT, pygame.K_a],
@@ -49,74 +55,60 @@ current_slot = 0
 save_manager = SaveManager(SAVE_FILE)
 camera = Camera(SCREEN_WIDTH, SCREEN_HEIGHT)
 
+terminals = []
+activeTerminal = None
+
+flashTimer = 0
+alarmOverlay = False
+
 def build_level(level):
     rooms = [
         pygame.Rect(0, 0, 1000, 750),
         pygame.Rect(1000, 0, 1000, 750),
-        pygame.Rect(1000, -750, 1000, 750), 
+        pygame.Rect(0, 750, 1000, 750), 
         #build rooms off of this :thumbsUp:
-    ]
-
-    doors = [
-        {
-            "trigger": pygame.Rect(960, 550, 40, 100),
-            "targetRoom": 1,
-            "type": "directional",
-            "direction": "right",
-            "spawnX": 1000,
-            "keepY": True,
-            "armed": False,
-        },
-        {
-            "trigger": pygame.Rect(1000, 550, 40, 100),
-            "targetRoom": 0,
-            "type": "directional",
-            "direction": "left",
-            "spawnX": 970,
-            "keepY": True,
-            "armed": False, 
-        },
-        {
-            "trigger": pygame.Rect(1400, 0, 100, 20),
-            "targetRoom": 2,
-            "type": "touch",
-            "spawnY": 730,
-            "keepX": True,
-            "armed": False,
-        },
-        {
-            "trigger": pygame.Rect(1400, 730, 100, 20),
-            "targetRoom": 1,
-            "type": "touch",
-            "spawnY": 0,
-            "keepX": True,
-            "armed": False,
-        }
     ]
 
     platforms = [
         #room 0
-        pygame.Rect(0, 710, 1000, 40),
+        pygame.Rect(0, 725, 450, 40),
+        pygame.Rect(550, 725, 450, 40),
         pygame.Rect(200, 550, 150, 20),
+        pygame.Rect(700, 650, 260, 20),
 
         #room 1
-        pygame.Rect(1000, 710, 1000, 40),
-        pygame.Rect(1200, 450, 150, 20),
+        pygame.Rect(1000, 725, 1000, 40),
+        pygame.Rect(1050, 550, 150, 20),
+        pygame.Rect(1250, 450, 150, 20),
+        pygame.Rect(1400, 250, 200, 20),
+
+        #room 2
+        pygame.Rect(0, 1475, 1000, 40),
+        pygame.Rect(200, 1225, 200, 30),
+        pygame.Rect(700, 1350, 300, 30),
+        pygame.Rect(500, 1050, 100, 30),
+        pygame.Rect(350, 875, 250, 30),
+    ]
+
+    terminals = [
+        Terminal(x = 250, y = 500, timeLimit = 25.0),
+        Terminal(x = 1300, y = 400, timeLimit = 25.0),
+        Terminal(x = 300, y = 1175, timeLimit = 25.0),
     ]
 
     return {
         "rooms": rooms,
-        "doors": doors,
-        "platforms": platforms
+        "platforms": platforms,
+        "terminals": terminals
     }
 
-levelData = build_level(1)
+levelData = build_level(0)
 rooms = levelData["rooms"]
-doors = levelData["doors"]
 platforms = levelData["platforms"]
+terminals = levelData["terminals"]
 currRoom = 0
 
-player = Player(100, 400)
+player = Player(100, 700)
 
 def draw_text(text, font, color, center):
     surf = font.render(text, True, color)
@@ -139,18 +131,21 @@ for i in range(3):
     reset_buttons.append(Button("RESET", SCREEN_WIDTH // 2 + 70, y, 130, 60, RED, LIGHT_RED, small_font))
 
 def start_game(slot_index):
-    global current_slot, player, levelData, rooms, doors, platforms, currRoom
+    global current_slot, player, levelData, rooms, platforms, currRoom, terminals
     current_slot = slot_index
     slot = save_manager.get_slot(slot_index)
     level = slot["level"]
 
     levelData = build_level(level)
     rooms = levelData["rooms"]
-    doors = levelData["doors"]
     platforms = levelData["platforms"]
+    terminals = levelData["terminals"]
 
-    pX = slot["player_x"]
-    pY = slot["player_y"]
+    if not slot["exists"]:
+        pX, pY = 100, 700
+    else:
+        pX = slot["player_x"]
+        pY = slot["player_y"]
     currRoom = 0
 
     for i, room in enumerate(rooms):
@@ -170,20 +165,36 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-            if current_state == PLAYING:
-                current_state = PAUSED
-            elif current_state == PAUSED:
-                current_state = PLAYING
-            elif current_state == LEVEL_SELECT:
-                current_state = MENU
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                if current_state == PLAYING or current_state == HACKING:
+                    PREVIOUS_STATE = current_state
+                    current_state = PAUSED
+                elif current_state == PAUSED:
+                    current_state = PREVIOUS_STATE
+                elif current_state == LEVEL_SELECT:
+                    current_state = MENU
+
+            elif event.key == pygame.K_e:
+                if current_state == PLAYING:
+                    for t in terminals:
+                        if t.canInteract(player.rect) and not t.isHacked:
+                            activeTerminal = t
+                            current_state = HACKING
+
+                            if activeTerminal.timeLeft == activeTerminal.timeLimit:
+                                activeTerminal.timeLeft -= 0.01 #just allows for some minor consistency of logic loops
+                                
+                            break
+                elif current_state == HACKING:
+                    activeTerminal = None
+                    current_state = PLAYING
 
         if current_state == MENU:
             if btn_start.is_clicked(event):
                 current_state = LEVEL_SELECT
             if btn_quit.is_clicked(event):
                 running = False
-
         elif current_state == LEVEL_SELECT:
             for i, btn in enumerate(slot_buttons):
                 if btn.is_clicked(event):
@@ -193,7 +204,6 @@ while running:
                     save_manager.reset_slot(i)
             if btn_back_menu.is_clicked(event):
                 current_state = MENU
-
         elif current_state == PAUSED:
             if btn_resume.is_clicked(event):
                 current_state = PLAYING
@@ -201,52 +211,41 @@ while running:
                 slot = save_manager.get_slot(current_slot)
                 save_manager.write_slot(current_slot, slot["level"], player.rect.x, player.rect.y)
                 current_state = MENU
-
-    if current_state == PLAYING:
-        camera.update()
-
-        if not camera.isTrans:
-            keys = pygame.key.get_pressed()
-            player.input(keys)
-
-            for door in doors:
-                touch = player.rect.colliderect(door["trigger"])
-
-                if door["type"] == "directional":
-                    keyHeld = any(keys[k] for k in DIRECTION_KEYS[door["direction"]])
-                    satisfied = touch and keyHeld
-                else:
-                    satisfied = touch
-
-                if satisfied and not door["armed"] and player.doorCd <= 0:
-                    currRoom = door["targetRoom"]
-                    camera.targetRoom(rooms[currRoom])
-
-                    if not door.get("keepX", False):
-                        player.rect.x = door["spawnX"]
-                    if not door.get("keepY", False):
-                        player.rect.y = door["spawnY"]
-
-                    player.doorCd = 30
-
-                    for d in doors:
-                        stillTouch = player.rect.colliderect(d["trigger"])
-                        if d["type"] == "directional":
-                            stillKeyheld = any(keys[k] for k in DIRECTION_KEYS[d["direction"]])
-                            d["armed"] = stillTouch and stillKeyheld
-                        else:
-                            d["armed"] = stillTouch
-
-                    break
-                else:
-                    door["armed"] = satisfied
         
-        player.update(platforms, rooms[currRoom], camera.isTrans)
+    if current_state == PLAYING or current_state == HACKING:
+        if current_state == PLAYING:
+            camera.update()
 
-        if player.rect.top > 2000: #change this later for whenever more rooms are added upwards
-            slot = save_manager.get_slot(current_slot)
-            save_manager.write_slot(current_slot, slot["level"], 100, 400)
-            player = Player(100, 400)
+            if not camera.isTrans:
+                keys = pygame.key.get_pressed()
+                player.input(keys)
+
+            player.update(platforms, None, camera.isTrans)
+
+            playerCenter = player.rect.center
+            for i, room in enumerate(rooms):
+                if i != currRoom and room.collidepoint(playerCenter):
+                    currRoom = i
+                    camera.targetRoom(rooms[currRoom])
+                    break
+    
+            if player.rect.top > 2000: #change this later for whenever more rooms are added upwards
+                slot = save_manager.get_slot(current_slot)
+                save_manager.write_slot(current_slot, slot["level"], 100, 700)
+                player = Player(100, 700)
+
+        for t in terminals:
+            if t.timeLeft < t.timeLimit and not t.isHacked and t.timeLeft > 0:
+                t.timeLeft -= 1/FPS
+                if t.timeLeft <= 0:
+                    t.timeLeft = 0
+                    t.alarmTriggered = True
+
+    anyAlarm = any(t.alarmTriggered for t in terminals)
+    if anyAlarm:
+        flashTimer += 1
+        if flashTimer % 30 == 0:
+            alarmOverlay = not alarmOverlay    
 
     if current_state == MENU:
         btn_start.update(mouse_pos)
@@ -282,31 +281,66 @@ while running:
             screen.blit(info_surf, (SCREEN_WIDTH // 2 - 200, 180 + i * 100 + 65))
         btn_back_menu.draw(screen)
 
-    elif current_state == PLAYING:
+    elif current_state in (PLAYING, HACKING, PAUSED):
         screen.fill((30, 30, 60))
         for p in platforms:
             screenRect = camera.apply(p)
             pygame.draw.rect(screen, GREEN, screenRect)
-            pygame.draw.rect(screen, WHITE, screenRect, 2)
+            #pygame.draw.rect(screen, WHITE, screenRect, 2)
+
+        for t in terminals:
+            t.draw(screen, camera)
 
         player.draw(screen, camera)
         hint = small_font.render("ESC to pause", True, WHITE)
         screen.blit(hint, (10, 10))
 
-    elif current_state == PAUSED:
-        screen.fill((30, 30, 60))
-        for p in platforms:
-            screenRect = camera.apply(p)
-            pygame.draw.rect(screen, GREEN, screenRect)
-            pygame.draw.rect(screen, WHITE, screenRect, 2)
-        player.draw(screen, camera)
-        overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
-        overlay.set_alpha(180)
-        overlay.fill(BLACK)
-        screen.blit(overlay, (0, 0))
-        draw_text("PAUSED", title_font, WHITE, (SCREEN_WIDTH // 2, 150))
-        btn_resume.draw(screen)
-        btn_main_menu.draw(screen)
+        if current_state == PLAYING:
+            for t in terminals:
+                if t.canInteract(player.rect) and not t.isHacked:
+                    prompt = small_font.render("Press E to Hack", True, WHITE)
+                    screen.blit(prompt, (SCREEN_WIDTH // 2 - 80, 50))
+                    break
+
+        if anyAlarm and alarmOverlay:
+            redTint = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+            redTint.set_alpha(80)
+            redTint.fill(RED)
+            screen.blit(redTint, (0, 0))
+
+        if current_state == PAUSED:
+            screen.fill((30, 30, 60))
+            for p in platforms:
+                screenRect = camera.apply(p)
+                pygame.draw.rect(screen, GREEN, screenRect)
+                pygame.draw.rect(screen, WHITE, screenRect, 2)
+            player.draw(screen, camera)
+            overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+            overlay.set_alpha(180)
+            overlay.fill(BLACK)
+            screen.blit(overlay, (0, 0))
+            draw_text("PAUSED", title_font, WHITE, (SCREEN_WIDTH // 2, 150))
+            btn_resume.draw(screen)
+            btn_main_menu.draw(screen)
+
+        elif current_state == HACKING:
+            overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+            overlay.set_alpha(220)
+            overlay.fill(PURPLE)
+            screen.blit(overlay, (0, 0))
+
+            draw_text("Hacking in Progress", menu_font, WHITE, (SCREEN_WIDTH // 2, 150))
+
+            if activeTerminal.timeLeft < 2.5:
+                timeColor = RED
+            elif activeTerminal.timeLeft < 5.0:
+                timeColor = YELLOW
+            else:
+                timeColor = WHITE
+
+            draw_text(f"Time Remaining: {activeTerminal.timeLeft:.1f}s", menu_font, timeColor, (SCREEN_WIDTH // 2, 250))
+            draw_text("Press [E] to exit", small_font, WHITE, (SCREEN_WIDTH // 2, 450))
+
 
     pygame.display.flip()
     clock.tick(FPS)
