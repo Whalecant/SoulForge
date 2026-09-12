@@ -44,9 +44,9 @@ class SaveManager:
     def default_data(self):
         return {
             "slots": [
-                {"level": 1, "player_x": 100, "player_y": 700, "exists": False},
-                {"level": 1, "player_x": 100, "player_y": 700, "exists": False},
-                {"level": 1, "player_x": 100, "player_y": 700, "exists": False},
+                {"level": 1, "player_x": 100, "player_y": 675, "exists": False},
+                {"level": 1, "player_x": 100, "player_y": 675, "exists": False},
+                {"level": 1, "player_x": 100, "player_y": 675, "exists": False},
             ]
         }
 
@@ -54,21 +54,24 @@ class SaveManager:
         with open(self.filepath, "w") as f:
             json.dump(self.data, f, indent=2)
 
-    def write_slot(self, index, level, player_x, player_y):
+    def write_slot(self, index, level, player_x, player_y, terminalsData = None):
         self.data["slots"][index] = {
             "level": level,
             "player_x": player_x,
             "player_y": player_y,
             "exists": True,
+            "terminals": terminalsData if terminalsData is not None else [],
         }
+
         self.save()
 
     def reset_slot(self, index):
         self.data["slots"][index] = {
             "level": 1,
             "player_x": 100,
-            "player_y": 700,
+            "player_y": 675,
             "exists": False,
+            "terminals": [],
         }
         self.save()
 

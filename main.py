@@ -1,4 +1,5 @@
 import pygame
+import copy
 import sys
 from player import Player # type: ignore
 from saveManager import SaveManager, Button # type: ignore
@@ -49,6 +50,27 @@ DIRECTION_KEYS = {
     "right": [pygame.K_RIGHT, pygame.K_d],
 }
 
+PUZZLES = [ #add more accordingly
+    #Room 0 Puzzle (as well as example for if you wanna use fixed positions)
+    {
+        "keyPos": [5, 1],
+        "exitPos": [5, 7],
+        "walls": [[0, 2], [1, 2], [2, 2], [3, 4], [4, 4], [5, 4]],
+        "dummies": [[1, 4], [3, 2]]
+    },
+    #Room 1 Puzzle (as well as example for if you wanna use randomized positions)
+    {
+        "walls": [[1, 1], [1, 2], [1, 3], [1, 4], [3, 3], [3, 4], [3, 5], [3, 6]],
+        "dummyCount": 3
+    },
+    #Room 2 Puzzle
+    {
+        "walls": [[2, 0], [2, 1], [2, 2], [2, 3], [4, 4], [4, 5], [4, 6], [4, 7]],
+        "dummyCount": 4
+    }
+
+]
+
 current_state = MENU
 current_slot = 0
 
@@ -85,15 +107,15 @@ def build_level(level):
         #room 2
         pygame.Rect(0, 1475, 1000, 40),
         pygame.Rect(200, 1225, 200, 30),
-        pygame.Rect(700, 1350, 300, 30),
+        pygame.Rect(500, 1350, 300, 30),
         pygame.Rect(500, 1050, 100, 30),
         pygame.Rect(350, 875, 250, 30),
     ]
 
     terminals = [
-        Terminal(x = 250, y = 500, timeLimit = 25.0),
-        Terminal(x = 1300, y = 400, timeLimit = 25.0),
-        Terminal(x = 300, y = 1175, timeLimit = 25.0),
+        Terminal(x = 250, y = 500, **copy.deepcopy(PUZZLES[0]) ,timeLimit = 25.0),
+        Terminal(x = 1300, y = 400, **copy.deepcopy(PUZZLES[1]),timeLimit = 25.0),
+        Terminal(x = 300, y = 1175, **copy.deepcopy(PUZZLES[2]),timeLimit = 25.0),
     ]
 
     return {
@@ -108,7 +130,7 @@ platforms = levelData["platforms"]
 terminals = levelData["terminals"]
 currRoom = 0
 
-player = Player(100, 700)
+player = Player(100, 675)
 
 def draw_text(text, font, color, center):
     surf = font.render(text, True, color)
@@ -141,8 +163,14 @@ def start_game(slot_index):
     platforms = levelData["platforms"]
     terminals = levelData["terminals"]
 
-    if not slot["exists"]:
-        pX, pY = 100, 700
+    if slot["exists"] and "terminals" in slot:
+        savedTerminals = slot["terminals"]
+        for i, t in enumerate(terminals):
+            if i <  len(savedTerminals):
+                t.loadDict(savedTerminals[i])
+
+    if not slot.get("exists"):
+        pX, pY = 100, 675
     else:
         pX = slot["player_x"]
         pY = slot["player_y"]
@@ -154,6 +182,7 @@ def start_game(slot_index):
             break
 
     player = Player(pX, pY)
+    print(f"SPAWNED AT: {player.rect.x}, {player.rect.y}")
     camera.snapToRoom(rooms[currRoom])
     return PLAYING
 
@@ -166,6 +195,9 @@ while running:
             running = False
 
         if event.type == pygame.KEYDOWN:
+            if current_state == HACKING and activeTerminal:
+                activeTerminal.input(event)
+
             if event.key == pygame.K_ESCAPE:
                 if current_state == PLAYING or current_state == HACKING:
                     PREVIOUS_STATE = current_state
@@ -181,6 +213,7 @@ while running:
                         if t.canInteract(player.rect) and not t.isHacked:
                             activeTerminal = t
                             current_state = HACKING
+                            activeTerminal.hasStarted = True
 
                             if activeTerminal.timeLeft == activeTerminal.timeLimit:
                                 activeTerminal.timeLeft -= 0.01 #just allows for some minor consistency of logic loops
@@ -209,10 +242,21 @@ while running:
                 current_state = PLAYING
             if btn_main_menu.is_clicked(event):
                 slot = save_manager.get_slot(current_slot)
-                save_manager.write_slot(current_slot, slot["level"], player.rect.x, player.rect.y)
+
+                terminalsData = [t.saveDict() for t in terminals]
+
+                save_manager.write_slot(current_slot, slot["level"], player.rect.x, player.rect.y, terminalsData)
                 current_state = MENU
         
     if current_state == PLAYING or current_state == HACKING:
+        for t in terminals:
+
+            autoExit = t.updateTimer(1 / FPS, t.hasStarted)
+
+            if autoExit and current_state == HACKING and activeTerminal == t:
+                activeTerminal = None
+                current_state = PLAYING
+
         if current_state == PLAYING:
             camera.update()
 
@@ -231,21 +275,17 @@ while running:
     
             if player.rect.top > 2000: #change this later for whenever more rooms are added upwards
                 slot = save_manager.get_slot(current_slot)
-                save_manager.write_slot(current_slot, slot["level"], 100, 700)
-                player = Player(100, 700)
-
-        for t in terminals:
-            if t.timeLeft < t.timeLimit and not t.isHacked and t.timeLeft > 0:
-                t.timeLeft -= 1/FPS
-                if t.timeLeft <= 0:
-                    t.timeLeft = 0
-                    t.alarmTriggered = True
+                save_manager.write_slot(current_slot, slot["level"], 100, 675)
+                player = Player(100, 675)
 
     anyAlarm = any(t.alarmTriggered for t in terminals)
     if anyAlarm:
         flashTimer += 1
         if flashTimer % 30 == 0:
-            alarmOverlay = not alarmOverlay    
+            alarmOverlay = not alarmOverlay 
+    else:
+        flashTimer = 0
+        alarmOverlay = False   
 
     if current_state == MENU:
         btn_start.update(mouse_pos)
@@ -323,13 +363,29 @@ while running:
             btn_resume.draw(screen)
             btn_main_menu.draw(screen)
 
-        elif current_state == HACKING:
+        elif current_state == HACKING and activeTerminal:
             overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
             overlay.set_alpha(220)
-            overlay.fill(PURPLE)
+            overlay.fill(BLACK)
             screen.blit(overlay, (0, 0))
 
-            draw_text("Hacking in Progress", menu_font, WHITE, (SCREEN_WIDTH // 2, 150))
+            draw_text("System Terminal Hack", menu_font, LIGHT_PURPLE, ((SCREEN_WIDTH // 2, 35)))
+
+            
+            
+            if activeTerminal.isHacked:
+                statusText = "Acces Granted"
+                statusColor = GREEN
+            elif activeTerminal.alarmTriggered:
+                statusText = "Alarm Triggered"
+                statusColor = RED
+            else:
+                statusText = "Collect Key Code and Head to the Exit"
+                statusColor = WHITE
+
+            draw_text(statusText, menu_font, statusColor, (SCREEN_WIDTH // 2, 75))
+
+            activeTerminal.drawMinigame(screen, SCREEN_WIDTH, SCREEN_HEIGHT, small_font)
 
             if activeTerminal.timeLeft < 2.5:
                 timeColor = RED
@@ -338,9 +394,11 @@ while running:
             else:
                 timeColor = WHITE
 
-            draw_text(f"Time Remaining: {activeTerminal.timeLeft:.1f}s", menu_font, timeColor, (SCREEN_WIDTH // 2, 250))
-            draw_text("Press [E] to exit", small_font, WHITE, (SCREEN_WIDTH // 2, 450))
-
+            draw_text(f"Time Remaining: {activeTerminal.timeLeft:.1f}s", menu_font, timeColor, (SCREEN_WIDTH // 2, 680))
+            
+            draw_text("Press [E] to exit", small_font, WHITE, (SCREEN_WIDTH // 2, 720))
+                        
+            
 
     pygame.display.flip()
     clock.tick(FPS)
