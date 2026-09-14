@@ -1,11 +1,12 @@
 import pygame
 import copy
 import sys
-from player import Player # type: ignorea
+from player import Player # type: ignore
 from saveManager import SaveManager, Button # type: ignore
 from camera import Camera #type: ignore
 from hackTerminal import Terminal #type: ignore
 from enemy import Enemy #type: ignore
+from door import Door #type: ignore
 #imma be honest, idk why the three things above are that bugged lol
 
 pygame.init()
@@ -79,10 +80,13 @@ PUZZLES = [ #add more accordingly
 # for the enemy AI (this will be hell :DDDD)
 WAYPOINTS = {
     # --- ROOM 0 (World X: 0 - 1000, Y: 0 - 750) ---
-    "r0_floor_left": (225, 685, ["r0_floor_right", "r0_plat_mid"]),
-    "r0_floor_right": (775, 685, ["r0_floor_left", "r0_plat_high"]),
+    "r0_floor_left": (175, 685, ["r0_floor_right", "r0_plat_mid"]),
+    "r0_floor_right": (650, 685, ["r0_floor_left", "r0_plat_high"]),
+    "r0_floor_right_backup": (725, 685, ["r0_floor_right"]),
+    "r0_floor_left_backup": (400, 575, ["r0_floor_left", "r0_plat_mid", "r0_floor_right"]),
     "r0_plat_mid": (275, 510, ["r0_floor_left"]),
     "r0_plat_high": (830, 610, ["r0_floor_right", "r1_plat_low"]),
+    "r0_trans": (475, 685, ["r0_floor_left", "r0_floor_right", "r2_plat_4"]),
 
     # --- ROOM 1 (World X: 1000 - 2000, Y: 0 - 750) ---
     "r1_plat_low": (1125, 510, ["r0_plat_high", "r1_floor", "r1_plat_mid"]),
@@ -91,11 +95,14 @@ WAYPOINTS = {
     "r1_plat_high": (1500, 210, ["r1_plat_mid"]),
 
     # --- ROOM 2 (World X: 0 - 1000, Y: 750 - 1500) ---
-    "r2_floor": (500, 1435, ["r2_plat_2", "r2_plat_1"]),
-    "r2_plat_2": (650, 1310, ["r2_floor", "r2_plat_3"]),
-    "r2_plat_1": (300, 1185, ["r2_floor", "r2_plat_4"]),
+    "r2_floor": (400, 1435, ["r2_floor_right", "r2_floor_left_air", "r2_floor_above"]),
+    "r2_floor_above": (450, 1375, ["r2_floor", "r2_plat_2"]),
+    "r2_plat_2": (650, 1310, ["r2_floor_above", "r2_plat_3", "r2_plat_1", "r2_floor_right"]),
+    "r2_plat_1": (300, 1185, ["r2_plat_4", "r2_plat_2", "r2_floor_left_air"]),
     "r2_plat_3": (550, 1010, ["r2_plat_2"]),
-    "r2_plat_4": (475, 835, ["r2_plat_1", "r2_plat_3"])
+    "r2_plat_4": (475, 835, ["r2_plat_1", "r2_plat_3", "r0_trans"]),
+    "r2_floor_right": (900, 1400, ["r2_floor", "r2_plat_2"]),
+    "r2_floor_left_air": (150, 1300, ["r2_floor", "r2_plat_1"]),
 }
 
 current_state = MENU
@@ -124,6 +131,8 @@ def build_level(level):
         pygame.Rect(550, 725, 450, 40),
         pygame.Rect(200, 550, 150, 20),
         pygame.Rect(700, 650, 260, 20),
+        pygame.Rect(0, 0, 50, 750),
+        pygame.Rect(0, 0, 1000, 25),
 
         #room 1
         pygame.Rect(1000, 725, 1000, 40),
@@ -138,12 +147,17 @@ def build_level(level):
         pygame.Rect(500, 1350, 300, 30),
         pygame.Rect(500, 1050, 100, 30),
         pygame.Rect(350, 875, 250, 30),
+        pygame.Rect(0, 750, 50, 1000)
     ]
 
     terminals = [
-        Terminal(x = 250, y = 500, **copy.deepcopy(PUZZLES[0]) ,timeLimit = 25.0),
-        Terminal(x = 1300, y = 400, **copy.deepcopy(PUZZLES[1]),timeLimit = 25.0),
-        Terminal(x = 300, y = 1175, **copy.deepcopy(PUZZLES[2]),timeLimit = 25.0),
+        Terminal(x = 250, y = 500, **copy.deepcopy(PUZZLES[0]) ,timeLimit = 20.0),
+        Terminal(x = 1300, y = 400, **copy.deepcopy(PUZZLES[1]),timeLimit = 20.0),
+        Terminal(x = 300, y = 1175, **copy.deepcopy(PUZZLES[2]),timeLimit = 20.0),
+    ]
+
+    doors = [
+        Door(x = 450, y = 725, width=100, height = 20, openX=-100, openY = -0, requiredTerminals=[terminals[0]]),
     ]
 
     enemies = [
@@ -156,6 +170,7 @@ def build_level(level):
         "platforms": platforms,
         "terminals": terminals,
         "enemies": enemies,
+        "doors": doors,
     }
 
 levelData = build_level(0)
@@ -163,6 +178,7 @@ rooms = levelData["rooms"]
 platforms = levelData["platforms"]
 terminals = levelData["terminals"]
 enemies = levelData["enemies"]
+doors = levelData["doors"]
 currRoom = 0
 
 player = Player(100, 675)
@@ -200,20 +216,21 @@ def resetPlayerPos(p):
     camera.snapToRoom(rooms[currRoom])
 
 def resetLevel():
-    global player, levelData, rooms, platforms, terminals, enemies, currRoom
+    global player, levelData, rooms, platforms, terminals, enemies, currRoom, doors
 
     levelData = build_level(0)
     rooms = levelData["rooms"]
     platforms = levelData["platforms"]
     terminals = levelData["terminals"]
     enemies = levelData["enemies"]
+    doors = levelData["doors"]
 
     player = Player(START_X, START_Y)
     currRoom = 0
     camera.snapToRoom(rooms[currRoom])
 
 def start_game(slot_index):
-    global current_slot, player, levelData, rooms, platforms, currRoom, terminals, enemies
+    global current_slot, player, levelData, rooms, platforms, currRoom, terminals, enemies, doors
     current_slot = slot_index
     slot = save_manager.get_slot(slot_index)
     level = slot["level"]
@@ -223,6 +240,7 @@ def start_game(slot_index):
     platforms = levelData["platforms"]
     terminals = levelData["terminals"]
     enemies = levelData["enemies"]
+    doors = levelData["doors"]
 
     if slot["exists"] and "terminals" in slot:
         savedTerminals = slot["terminals"]
@@ -325,6 +343,9 @@ while running:
                 activeTerminal = None
                 current_state = PLAYING
 
+        for door in doors:
+            door.update(dt=1/FPS, isPause = (current_state == PAUSED))
+
         if current_state == PLAYING:
             camera.update()
 
@@ -332,12 +353,15 @@ while running:
                 keys = pygame.key.get_pressed()
                 moveInput = player.input(keys)
 
+                activePhysicsPlatforms = platforms + [door.rect for door in doors]
+                anyAlarm = any(t.alarmTriggered for t in terminals)
+
                 for enemy in enemies:
-                    enemy.update(platforms, player)
+                    enemy.update(activePhysicsPlatforms, player, forceChase = anyAlarm)
                     if enemy.hitbox.colliderect(player.rect):
                         current_state = GAME_OVER
 
-            player.update(platforms, None, camera.isTrans, moveInput)
+            player.update(activePhysicsPlatforms, None, camera.isTrans, moveInput)
 
             playerCenter = player.rect.center
             for i, room in enumerate(rooms):
@@ -401,11 +425,17 @@ while running:
             screenRect = camera.apply(p)
             pygame.draw.rect(screen, GREEN, screenRect)
             #pygame.draw.rect(screen, WHITE, screenRect, 2)
+        
+        for door in doors:
+            door.draw(screen, camera)
 
         for t in terminals:
             t.draw(screen, camera)
         
         if not camera.isTrans:
+            for door in doors:
+                door.draw(screen, camera)
+
             for enemy in enemies:
                 enemy.draw(screen, camera)
                 enemy.draw_waypoints(screen, camera)

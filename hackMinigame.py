@@ -144,7 +144,7 @@ class hackingMinigame:
                 if [r, c] in self.walls:
                     pygame.draw.rect(surface, RED, rect.inflate(-4, -4))
 
-                elif [r, c] in self.dummies:
+                elif [r, c] in self.dummies and (r, c) not in self.collectedDummies:
                     pygame.draw.rect(surface, GRAY, rect.inflate(-16, -16))
                     self.drawCenteredWrappedText(surface, "ACCESS = FALSE", self.codeFont, WHITE, rect)
 
