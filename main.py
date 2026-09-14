@@ -5,6 +5,7 @@ from player import Player # type: ignore
 from saveManager import SaveManager, Button # type: ignore
 from camera import Camera #type: ignore
 from hackTerminal import Terminal #type: ignore
+from enemy import Enemy #type: ignore
 #imma be honest, idk why the three things above are that bugged lol
 
 pygame.init()
@@ -118,16 +119,23 @@ def build_level(level):
         Terminal(x = 300, y = 1175, **copy.deepcopy(PUZZLES[2]),timeLimit = 25.0),
     ]
 
+    enemies = [
+        Enemy(700, 600, patrol_range = 500),
+        Enemy(500, 1100, patrol_range = 500),
+    ]
+
     return {
         "rooms": rooms,
         "platforms": platforms,
-        "terminals": terminals
+        "terminals": terminals,
+        "enemies": enemies,
     }
 
 levelData = build_level(0)
 rooms = levelData["rooms"]
 platforms = levelData["platforms"]
 terminals = levelData["terminals"]
+enemies = levelData["enemies"]
 currRoom = 0
 
 player = Player(100, 675)
@@ -153,7 +161,7 @@ for i in range(3):
     reset_buttons.append(Button("RESET", SCREEN_WIDTH // 2 + 70, y, 130, 60, RED, LIGHT_RED, small_font))
 
 def start_game(slot_index):
-    global current_slot, player, levelData, rooms, platforms, currRoom, terminals
+    global current_slot, player, levelData, rooms, platforms, currRoom, terminals, enemies
     current_slot = slot_index
     slot = save_manager.get_slot(slot_index)
     level = slot["level"]
@@ -162,6 +170,7 @@ def start_game(slot_index):
     rooms = levelData["rooms"]
     platforms = levelData["platforms"]
     terminals = levelData["terminals"]
+    enemies = levelData["enemies"]
 
     if slot["exists"] and "terminals" in slot:
         savedTerminals = slot["terminals"]
@@ -264,6 +273,9 @@ while running:
                 keys = pygame.key.get_pressed()
                 player.input(keys)
 
+                for enemy in enemies:
+                    enemy.update(platforms, player)
+
             player.update(platforms, None, camera.isTrans)
 
             playerCenter = player.rect.center
@@ -272,6 +284,14 @@ while running:
                     currRoom = i
                     camera.targetRoom(rooms[currRoom])
                     break
+
+            for enemy in enemies:
+                enemy.update(platforms, player)
+
+            spotted = any(enemy.player_spotted for enemy in enemies)
+            if spotted:
+                alert = small_font.render("SPOTTED!", True, (200, 50, 50))
+                screen.blit(alert, (10, 40))
     
             if player.rect.top > 2000: #change this later for whenever more rooms are added upwards
                 slot = save_manager.get_slot(current_slot)
@@ -330,6 +350,10 @@ while running:
 
         for t in terminals:
             t.draw(screen, camera)
+        
+        if not camera.isTrans:
+            for enemy in enemies:
+                enemy.draw(screen, camera)
 
         player.draw(screen, camera)
         hint = small_font.render("ESC to pause", True, WHITE)
