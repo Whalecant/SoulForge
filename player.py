@@ -145,6 +145,7 @@ class Player:
 
         if self.on_ground:
             self.isJump = False
+            self.slideTimer = 0
 
         #just as a precautionary method just in case this causes future bugs lol
         if self.doorCd > 0:
@@ -215,7 +216,7 @@ class Player:
         if self.isWallSlide:
             self.slideTimer += 1
         else:
-            self.slideTimer = 0
+            self.slideTimer = max(0, self.slideTimer - 0.5)
 
     def jump(self, moveInput):
         if(self.isWallSlide or self.isTouchWall) and not self.on_ground and self.wallLockout == 0:

@@ -83,8 +83,8 @@ WAYPOINTS = {
     "r0_floor_left": (175, 685, ["r0_floor_right", "r0_plat_mid"]),
     "r0_floor_right": (650, 685, ["r0_floor_left", "r0_plat_high"]),
     "r0_floor_right_backup": (725, 685, ["r0_floor_right"]),
-    "r0_floor_left_backup": (400, 575, ["r0_floor_left", "r0_plat_mid", "r0_floor_right"]),
-    "r0_plat_mid": (275, 510, ["r0_floor_left"]),
+    "r0_floor_left_backup": (400, 500, ["r0_floor_left", "r0_plat_mid", "r0_floor_right"]),
+    "r0_plat_mid": (275, 510, ["r0_floor_left", "r0_floor_left_backup"]),
     "r0_plat_high": (830, 610, ["r0_floor_right", "r1_plat_low"]),
     "r0_trans": (475, 685, ["r0_floor_left", "r0_floor_right", "r2_plat_4"]),
 
@@ -97,12 +97,12 @@ WAYPOINTS = {
     # --- ROOM 2 (World X: 0 - 1000, Y: 750 - 1500) ---
     "r2_floor": (400, 1435, ["r2_floor_right", "r2_floor_left_air", "r2_floor_above"]),
     "r2_floor_above": (450, 1375, ["r2_floor", "r2_plat_2"]),
-    "r2_plat_2": (650, 1310, ["r2_floor_above", "r2_plat_3", "r2_plat_1", "r2_floor_right"]),
+    "r2_plat_2": (650, 1310, ["r2_floor_above", "r2_plat_1", "r2_floor_right"]),
     "r2_plat_1": (300, 1185, ["r2_plat_4", "r2_plat_2", "r2_floor_left_air"]),
-    "r2_plat_3": (550, 1010, ["r2_plat_2"]),
+    "r2_plat_3": (550, 1010, ["r2_plat_4", "r2_plat_1"]),
     "r2_plat_4": (475, 835, ["r2_plat_1", "r2_plat_3", "r0_trans"]),
     "r2_floor_right": (900, 1400, ["r2_floor", "r2_plat_2"]),
-    "r2_floor_left_air": (150, 1300, ["r2_floor", "r2_plat_1"]),
+    "r2_floor_left_air": (125, 1300, ["r2_floor", "r2_plat_1"]),
 }
 
 current_state = MENU
@@ -132,7 +132,7 @@ def build_level(level):
         pygame.Rect(200, 550, 150, 20),
         pygame.Rect(700, 650, 260, 20),
         pygame.Rect(0, 0, 50, 750),
-        pygame.Rect(0, 0, 1000, 25),
+        pygame.Rect(0, 0, 2000, 25),
 
         #room 1
         pygame.Rect(1000, 725, 1000, 40),
@@ -147,7 +147,8 @@ def build_level(level):
         pygame.Rect(500, 1350, 300, 30),
         pygame.Rect(500, 1050, 100, 30),
         pygame.Rect(350, 875, 250, 30),
-        pygame.Rect(0, 750, 50, 1000)
+        pygame.Rect(0, 750, 50, 1000),
+        pygame.Rect(175, 1325, 75, 25)
     ]
 
     terminals = [
@@ -158,6 +159,8 @@ def build_level(level):
 
     doors = [
         Door(x = 450, y = 725, width=100, height = 20, openX=-100, openY = -0, requiredTerminals=[terminals[0]]),
+        Door(x = 990, y = 25, width = 20, height = 700, openX = 0, openY = -800, requiredTerminals=[terminals[0], terminals[2]]),
+        Door(x = 1700, y = 25, width = 50, height = 75, openX = 0, openY = -100, requiredTerminals=[terminals[0], terminals[1], terminals[2]]),
     ]
 
     enemies = [
