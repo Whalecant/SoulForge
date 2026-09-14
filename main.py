@@ -1,7 +1,7 @@
 import pygame
 import copy
 import sys
-from player import Player # type: ignore
+from player import Player # type: ignorea
 from saveManager import SaveManager, Button # type: ignore
 from camera import Camera #type: ignore
 from hackTerminal import Terminal #type: ignore
@@ -43,8 +43,12 @@ LEVEL_SELECT = "level_select"
 PLAYING = "playing"
 PAUSED = "paused"
 HACKING = "hacking"
+GAME_OVER = "game_over"
 
 PREVIOUS_STATE = PLAYING
+
+START_X = 100
+START_Y = 675
 
 DIRECTION_KEYS = {
     "left": [pygame.K_LEFT, pygame.K_a],
@@ -71,6 +75,28 @@ PUZZLES = [ #add more accordingly
     }
 
 ]
+
+# for the enemy AI (this will be hell :DDDD)
+WAYPOINTS = {
+    # --- ROOM 0 (World X: 0 - 1000, Y: 0 - 750) ---
+    "r0_floor_left": (225, 685, ["r0_floor_right", "r0_plat_mid"]),
+    "r0_floor_right": (775, 685, ["r0_floor_left", "r0_plat_high"]),
+    "r0_plat_mid": (275, 510, ["r0_floor_left"]),
+    "r0_plat_high": (830, 610, ["r0_floor_right", "r1_plat_low"]),
+
+    # --- ROOM 1 (World X: 1000 - 2000, Y: 0 - 750) ---
+    "r1_plat_low": (1125, 510, ["r0_plat_high", "r1_floor", "r1_plat_mid"]),
+    "r1_floor": (1500, 685, ["r1_plat_low"]),
+    "r1_plat_mid": (1325, 410, ["r1_plat_low", "r1_plat_high"]),
+    "r1_plat_high": (1500, 210, ["r1_plat_mid"]),
+
+    # --- ROOM 2 (World X: 0 - 1000, Y: 750 - 1500) ---
+    "r2_floor": (500, 1435, ["r2_plat_2", "r2_plat_1"]),
+    "r2_plat_2": (650, 1310, ["r2_floor", "r2_plat_3"]),
+    "r2_plat_1": (300, 1185, ["r2_floor", "r2_plat_4"]),
+    "r2_plat_3": (550, 1010, ["r2_plat_2"]),
+    "r2_plat_4": (475, 835, ["r2_plat_1", "r2_plat_3"])
+}
 
 current_state = MENU
 current_slot = 0
@@ -103,7 +129,8 @@ def build_level(level):
         pygame.Rect(1000, 725, 1000, 40),
         pygame.Rect(1050, 550, 150, 20),
         pygame.Rect(1250, 450, 150, 20),
-        pygame.Rect(1400, 250, 200, 20),
+        pygame.Rect(1400, 250, 200, 50),
+        pygame.Rect(1700, 100, 200, 650),
 
         #room 2
         pygame.Rect(0, 1475, 1000, 40),
@@ -120,8 +147,8 @@ def build_level(level):
     ]
 
     enemies = [
-        Enemy(700, 600, patrol_range = 500),
-        Enemy(500, 1100, patrol_range = 500),
+        Enemy(750, 600, patrol_range = 500, waypoints = WAYPOINTS),
+        Enemy(600, 1300, patrol_range = 500, waypoints = WAYPOINTS),
     ]
 
     return {
@@ -153,12 +180,37 @@ btn_back_menu = Button("BACK", SCREEN_WIDTH // 2 - 100, 500, 200, 55, GRAY, LIGH
 btn_resume = Button("RESUME", SCREEN_WIDTH // 2 - 100, 250, 200, 55, GREEN, LIGHT_GREEN, menu_font)
 btn_main_menu = Button("MAIN MENU", SCREEN_WIDTH // 2 - 100, 330, 200, 55, RED, LIGHT_RED, menu_font)
 
+respawnBtn = Button("RESPAWN", SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2 - 20, 200, 50, RED, LIGHT_RED, menu_font)
+gameOverMenuBtn = Button("MAIN MENU", SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2 + 80, 200, 55, GREEN, LIGHT_GREEN, menu_font)
+
 slot_buttons = []
 reset_buttons = []
 for i in range(3):
     y = 180 + i * 100
     slot_buttons.append(Button(f"SLOT {i+1}", SCREEN_WIDTH // 2 - 200, y, 250, 60, BLUE, LIGHT_BLUE, small_font))
     reset_buttons.append(Button("RESET", SCREEN_WIDTH // 2 + 70, y, 130, 60, RED, LIGHT_RED, small_font))
+
+def resetPlayerPos(p):
+    global currRoom
+    p.rect.x = START_X
+    p.rect.y = START_Y
+    p.vel_x = 0
+    p.vel_y = 0
+    currRoom = 0
+    camera.snapToRoom(rooms[currRoom])
+
+def resetLevel():
+    global player, levelData, rooms, platforms, terminals, enemies, currRoom
+
+    levelData = build_level(0)
+    rooms = levelData["rooms"]
+    platforms = levelData["platforms"]
+    terminals = levelData["terminals"]
+    enemies = levelData["enemies"]
+
+    player = Player(START_X, START_Y)
+    currRoom = 0
+    camera.snapToRoom(rooms[currRoom])
 
 def start_game(slot_index):
     global current_slot, player, levelData, rooms, platforms, currRoom, terminals, enemies
@@ -256,6 +308,13 @@ while running:
 
                 save_manager.write_slot(current_slot, slot["level"], player.rect.x, player.rect.y, terminalsData)
                 current_state = MENU
+        elif current_state == GAME_OVER:
+            if respawnBtn.is_clicked(event):
+                resetLevel()
+                current_state = PLAYING
+            if gameOverMenuBtn.is_clicked(event):
+                resetLevel()
+                current_state = MENU
         
     if current_state == PLAYING or current_state == HACKING:
         for t in terminals:
@@ -271,12 +330,14 @@ while running:
 
             if not camera.isTrans:
                 keys = pygame.key.get_pressed()
-                player.input(keys)
+                moveInput = player.input(keys)
 
                 for enemy in enemies:
                     enemy.update(platforms, player)
+                    if enemy.hitbox.colliderect(player.rect):
+                        current_state = GAME_OVER
 
-            player.update(platforms, None, camera.isTrans)
+            player.update(platforms, None, camera.isTrans, moveInput)
 
             playerCenter = player.rect.center
             for i, room in enumerate(rooms):
@@ -284,19 +345,9 @@ while running:
                     currRoom = i
                     camera.targetRoom(rooms[currRoom])
                     break
-
-            for enemy in enemies:
-                enemy.update(platforms, player)
-
-            spotted = any(enemy.player_spotted for enemy in enemies)
-            if spotted:
-                alert = small_font.render("SPOTTED!", True, (200, 50, 50))
-                screen.blit(alert, (10, 40))
     
             if player.rect.top > 2000: #change this later for whenever more rooms are added upwards
-                slot = save_manager.get_slot(current_slot)
-                save_manager.write_slot(current_slot, slot["level"], 100, 675)
-                player = Player(100, 675)
+                resetPlayerPos(player)
 
     anyAlarm = any(t.alarmTriggered for t in terminals)
     if anyAlarm:
@@ -319,6 +370,9 @@ while running:
     elif current_state == PAUSED:
         btn_resume.update(mouse_pos)
         btn_main_menu.update(mouse_pos)
+    elif current_state == GAME_OVER:
+        respawnBtn.update(mouse_pos)
+        gameOverMenuBtn.update(mouse_pos)
 
     if current_state == MENU:
         screen.fill(BLACK)
@@ -341,7 +395,7 @@ while running:
             screen.blit(info_surf, (SCREEN_WIDTH // 2 - 200, 180 + i * 100 + 65))
         btn_back_menu.draw(screen)
 
-    elif current_state in (PLAYING, HACKING, PAUSED):
+    elif current_state in (PLAYING, HACKING, PAUSED, GAME_OVER):
         screen.fill((30, 30, 60))
         for p in platforms:
             screenRect = camera.apply(p)
@@ -354,6 +408,7 @@ while running:
         if not camera.isTrans:
             for enemy in enemies:
                 enemy.draw(screen, camera)
+                enemy.draw_waypoints(screen, camera)
 
         player.draw(screen, camera)
         hint = small_font.render("ESC to pause", True, WHITE)
@@ -387,6 +442,15 @@ while running:
             btn_resume.draw(screen)
             btn_main_menu.draw(screen)
 
+        elif current_state == GAME_OVER:
+            overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+            overlay.set_alpha(200)
+            overlay.fill(BLACK)
+            screen.blit(overlay, (0, 0))
+            draw_text("YOU HAVE BEEN CAUGHT!", title_font, RED, (SCREEN_WIDTH // 2, 220))
+            respawnBtn.draw(screen)
+            gameOverMenuBtn.draw(screen)
+
         elif current_state == HACKING and activeTerminal:
             overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
             overlay.set_alpha(220)
@@ -395,8 +459,6 @@ while running:
 
             draw_text("System Terminal Hack", menu_font, LIGHT_PURPLE, ((SCREEN_WIDTH // 2, 35)))
 
-            
-            
             if activeTerminal.isHacked:
                 statusText = "Acces Granted"
                 statusColor = GREEN

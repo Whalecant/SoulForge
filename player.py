@@ -35,14 +35,18 @@ class Player:
         self.isTouchWall = False
         self.wallDir = 0
         self.isWallSlide = False
+        self.slideTimer = 0
+        self.wallGripDelay = 15
+        self.slideAccelPerSec = 1
+        self.slideAccelPerFrame = self.slideAccelPerSec / 60
 
         self.wallJumpForceX = 10
         self.wallJumpForceY = -12
         self.neutralXMult = 0.3
         self.wallLockout = 0
 
-        self.maxSlideSpd = 3
-        self.fastSlideSpd = 7
+        self.maxSlideSpd = 10.0
+        self.fastSlideSpd = 25.0
         self.fastFallForce = 1.5
         self.isFastFall = False
 
@@ -51,8 +55,10 @@ class Player:
 
         if keys[pygame.K_LEFT] or keys[pygame.K_a]:
             self.vel_x -= ACCEL
+            moveInput = -1
         elif keys[pygame.K_RIGHT] or keys[pygame.K_d]:
             self.vel_x += ACCEL
+            moveInput = 1
         else:
             if self.on_ground:
                 self.vel_x *= FRICTION
@@ -82,19 +88,32 @@ class Player:
 
         self.checkSurroundings(platforms, moveInput)
 
-        if self.isFastFall:
-            self.vel_y += GRAVITY * self.fastFallForce
-        else:
-            self.vel_y += GRAVITY
+        # if self.isFastFall:
+        #     self.vel_y += GRAVITY * self.fastFallForce
+        # else:
+        #     self.vel_y += GRAVITY
 
         if self.isWallSlide:
-            if self.isFastFall:
-                slideLimit = self.fastSlideSpd
-            else:
-                self.maxSlideSpd
+            slideLimit = self.fastSlideSpd if self.isFastFall else self.maxSlideSpd
 
-            if self.vel_y > slideLimit:
-                self.vel_y = slideLimit
+            if self.slideTimer <= self.wallGripDelay:
+                currentCap = 0.01
+            elif self.slideTimer <= 135:
+                slowFrames = self.slideTimer - 15
+                currentCap = 0.1 + (slowFrames * 0.015)
+            else:
+                fastFrames = self.slideTimer - 135
+
+                currentCap = 2.0 + (fastFrames * 0.4)
+                currentCap = min(currentCap, slideLimit)
+
+            self.vel_y = currentCap
+        else:
+            if self.isFastFall:
+                self.vel_y += GRAVITY * self.fastFallForce
+            else:
+                self.vel_y += GRAVITY
+        
         # keys = pygame.key.get_pressed()
         # moving = keys[pygame.K_LEFT] or keys[pygame.K_a] or keys[pygame.K_RIGHT] or keys[pygame.K_d]
         # if not moving:
@@ -171,13 +190,10 @@ class Player:
         else:
             pushIntoWall = False
 
-        if not self.on_ground and self.isTouchWall and self.vel_y >= 0 and pushIntoWall  and self.wallLockout == 0:
-            self.isWallSlide = True
-        else:
-            self.isWallSlide = False
-
+            
         #wall mantle
-        if self.isTouchWall and not self.on_ground and self.vel_y >= 0:
+        mantled = False
+        if self.isTouchWall and not self.on_ground and self.vel_y >= 0 and not self.isWallSlide:
             headRect = pygame.Rect(self.rect.x, self.rect.y, self.rect.width, 20) #uhhh, for in short, higher number, less area it can mantle, cuz its now long if ur legs are through that you can mantle, essentially :thumbsUp:
             if self.wallDir == -1:
                 headRect.x -= 4
@@ -188,12 +204,24 @@ class Player:
 
             if not headBlocked:
                 self.mantleClimb()
+                mantled = True
+
+        if not mantled and not self.on_ground and self.isTouchWall and self.vel_y >= 0 and pushIntoWall  and self.wallLockout == 0:
+            self.isWallSlide = True
+        else:
+            self.isWallSlide = False
+
+
+        if self.isWallSlide:
+            self.slideTimer += 1
+        else:
+            self.slideTimer = 0
 
     def jump(self, moveInput):
-        if(self.isWallSlide or self.isTouchWall) and not self.on_ground:
+        if(self.isWallSlide or self.isTouchWall) and not self.on_ground and self.wallLockout == 0:
             self.isFastFall = False
             self.isWallSlide = False
-            self.wallLockout = 10 #10 frames to not be able to wall jump again instantly, u can remove if u think is not needed (this applies to any and all cd and lockout timers)
+            self.wallLockout = 20 #10 frames to not be able to wall jump again instantly, u can remove if u think is not needed (this applies to any and all cd and lockout timers)
 
             if (self.wallDir == -1 and moveInput > 0) or (self.wallDir == 1 and moveInput < 0):
                 holdAway = True
