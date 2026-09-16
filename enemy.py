@@ -4,14 +4,14 @@ from collections import deque
 
 
 
-PATROL_SPEED = 2.5
-RETURN_SPEED = 3.75
-CHASE_SPEED = 5
+PATROL_SPEED = 2
+RETURN_SPEED = 3.5
+CHASE_SPEED = 4
 ENEMY_VISION_RANGE = 250
 ENEMY_VISION_HEIGHT = 80
 GRAVITY = 0.6
 JUMP_STRENGTH = -15
-CHASE_MEMORY_FRAMES = 180
+CHASE_MEMORY_FRAMES = 300
 
 # # BRACKEYS MY GOAT https://www.youtube.com/watch?v=jvtFUfJ6CP8
 REPATH_INTERVAL_FRAMES = 20  # Re-path every ~0.3 seconds at 60 FPS
@@ -105,7 +105,7 @@ class Enemy:
 
         if self.state == "CHASE":
 
-            if seePlayer or self.chaseTimer > 90:
+            if seePlayer or self.chaseTimer > 210:
                 self.clear_path()
                 self.moveTowards(player.rect.centerx, currSpeed)
                 targetYCheck = player.rect.centery
@@ -128,8 +128,10 @@ class Enemy:
                         self.waypoint_stall_timer = 0
                     else:
                         self.waypoint_stall_timer += 1
-                        if self.waypoint_stall_timer >= WAYPOINT_STUCK_FRAMES and self.lastKnownX is not None:
-                            self.block_current_node_and_repath(self.lastKnownX, self.lastKnownY)
+                        if self.waypoint_stall_timer >= WAYPOINT_STUCK_FRAMES:
+                            self.waypoint_stall_timer = 0
+                            if self.lastKnownX is not None and self.lastKnownY is not None:
+                                self.update_path_to(self.lastKnownX, self.lastKnownY)
                 elif self.lastKnownX is not None:
                     self.moveTowards(self.lastKnownX, currSpeed)
 
@@ -156,6 +158,7 @@ class Enemy:
                 else:
                     self.waypoint_stall_timer += 1
                     if self.waypoint_stall_timer >= WAYPOINT_STUCK_FRAMES:
+                        self.waypoint_stall_timer = 0
                         self.block_current_node_and_repath(self.spawn_x, self.spawn_y)
             else:
                 self.moveTowards(self.spawn_x, currSpeed)
@@ -174,7 +177,7 @@ class Enemy:
                     self.vel_x = PATROL_SPEED * self.facing
 
             distToSpawn = math.hypot(self.spawn_x - self.rect.centerx, self.spawn_y - self.rect.centery)
-            if distToSpawn < NEXT_WAYPOINT_DIST or (abs(self.spawn_x - self.rect.centerx) < 5 and abs(self.spawn_y - self.rect.centery) < NEXT_WAYPOINT_DIST_Y):
+            if distToSpawn < NEXT_WAYPOINT_DIST or (abs(self.spawn_x - self.rect.centerx) < 2.5 and abs(self.spawn_y - self.rect.centery) < NEXT_WAYPOINT_DIST_Y):
                 self.clear_path()
                 self.has_returned_path = False
                 self.rect.centerx = self.spawn_x
@@ -342,7 +345,7 @@ class Enemy:
 
         dx = player.rect.centerx - self.rect.centerx
         dy = player.rect.centery - self.rect.centery
-        if (dx * dx + dy * dy) < 22500:
+        if (dx * dx + dy * dy) < 2500:
             return True
 
         visionRect = self.get_vision_rect()
@@ -419,3 +422,36 @@ class Enemy:
                     nx, ny = self.waypoints[n_id][:2]
                     n_draw_pos = camera.apply_point((nx, ny)) if camera and hasattr(camera, 'apply_point') else (camera.apply(pygame.Rect(nx, ny, 1, 1)).topleft if camera else (nx, ny))
                     pygame.draw.line(surface, (0, 255, 255), draw_pos, n_draw_pos, 1)
+
+    def saveDict(self):
+        return{
+            "x": self.rect.x,
+            "y": self.rect.y,
+            "facing": self.facing,
+            "state": self.state,
+            "spawn_x": self.spawn_x,
+            "spawn_y": self.spawn_y,
+            "chaseTimer": self.chaseTimer,
+            "lastKnownX": self.lastKnownX,
+            "lastKnownY": self.lastKnownY
+        }
+
+    def loadDict(self, data):
+        self.rect.x = data.get("x", self.rect.x)
+        self.rect.y = data.get("y", self.rect.y)
+        self.hitbox.x = self.rect.x
+        self.hitbox.y = self.rect.y
+        self.facing = data.get("facing", self.facing)
+        self.state = data.get("state", "PATROL")
+        self.spawn_x = data.get("spawn_x", self.spawn_x)
+        self.spawn_y = data.get("spawn_y", self.spawn_y)
+
+        self.chaseTimer = data.get("chaseTimer", 0)
+        self.lastKnownX = data.get("lastKnownX", None)
+        self.lastKnownY = data.get("lastKnownY", None)
+
+        self.clear_path()
+        if self.state == "CHASE" and self.lastKnownX is not None and self.lastKnownY is not None:
+            self.update_path_to(self.lastKnownX, self.lastKnownY)
+        elif self.state == "RETURNING":
+            self.update_path_to(self.spawn_x, self.spawn_y)

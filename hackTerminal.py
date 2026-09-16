@@ -7,7 +7,7 @@ LIGHT_PURPLE = (203, 195, 227)
 BLACK = (0, 0, 0)
 
 class Terminal:
-    def __init__(self, x, y, walls, keyPos = None, exitPos = None, dummies = None, dummyCount = 1, timeLimit = 25.0):
+    def __init__(self, x, y, walls, keyPos = None, exitPos = None, dummies = None, dummyCount = 1, timeLimit = 25.0, room="general"):
         self.rect = pygame.Rect(x, y, 40, 50)
         self.timeLimit = timeLimit
         self.timeLeft = timeLimit
@@ -25,6 +25,8 @@ class Terminal:
             dummies = dummies,
             dummyCount = dummyCount,
         )
+
+        self.room = room
 
     def saveDict(self):
         return{

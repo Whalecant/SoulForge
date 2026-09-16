@@ -50,17 +50,30 @@ class SaveManager:
             ]
         }
 
+    def add_ending(self, index, endingId):
+        slot = self.data["slots"][index]
+        endings = slot.get("endings", [])
+        if endingId not in endings:
+            endings.append(endingId)
+        slot["endings"] = endings
+        self.save()
+
     def save(self):
         with open(self.filepath, "w") as f:
             json.dump(self.data, f, indent=2)
 
-    def write_slot(self, index, level, player_x, player_y, terminalsData = None):
+    def write_slot(self, index, level, player_x, player_y, terminalsData = None, enemiesData = None, timer = 0.0):
+        slot = self.data["slots"][index]
         self.data["slots"][index] = {
             "level": level,
             "player_x": player_x,
             "player_y": player_y,
             "exists": True,
+            "timer": timer,
+            "journal": slot.get("jorunal", []),
+            "endings": slot.get("endings", []),
             "terminals": terminalsData if terminalsData is not None else [],
+            "enemies": enemiesData if enemiesData is not None else [],
         }
 
         self.save()

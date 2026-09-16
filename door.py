@@ -13,6 +13,14 @@ class Door:
         self.delayTimer = 0.0
         self.requiredTerminals = requiredTerminals or []
 
+    def syncToTerminalState(self):
+        if self.allTerminalsHacked():
+            self.delayTimer = self.openDelay
+            self.currentPos = pygame.Vector2(self.openPos)
+            self.targetPos = pygame.Vector2(self.openPos)
+            self.rect.x = int(self.openPos.x)
+            self.rect.y = int(self.openPos.y)
+
     def update(self, dt=1/60,  isPause = False):
         if isPause:
             return
