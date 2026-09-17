@@ -9,6 +9,7 @@ from enemy import Enemy #type: ignore
 from door import Door #type: ignore
 from lore import LoreKey, JournalManager, NotificationManager, JOURNAL_CHAPTERS, wrap_text #type: ignore
 from warden import Warden #type: ignore
+from checkpointManager import Checkpoint #type: ignore
 #imma be honest, idk why the three things above are that bugged lol
 
 pygame.init()
@@ -105,7 +106,7 @@ PUZZLES = [ #add more accordingly
 
 ]
 
-# for the enemy AI (this will be hell :DDDD)
+# for the enemy AI (this will be hell :DDDD) - it was in fact... hell...
 WAYPOINTS = {
     # room 0 (x: 0 - 1000, y: 0 - 750)
     "r0_floor_left": (175, 685, ["r0_floor_right", "r0_plat_1"]),
@@ -416,6 +417,25 @@ def build_level(level):
         pygame.Rect(3025, 1650, 100, 25),
         pygame.Rect(3100, 1925, 25, 175),
 
+        #room 11 (3000 - 4000, 0 - 750)
+        pygame.Rect(3000, 0, 1000, 25), #roof
+        pygame.Rect(3000, 725, 1000, 25), #floor
+        pygame.Rect(3975, 100, 50, 650), #right wall
+        pygame.Rect(3000, 150, 300, 400),
+        pygame.Rect(3000, 650, 300, 100),
+        pygame.Rect(3000, 550, 150, 200),
+        pygame.Rect(3150, 125, 50, 25),
+        pygame.Rect(3200, 100, 50, 50),
+        pygame.Rect(3300, 250, 100, 25),
+        pygame.Rect(3500, 150, 250, 450),
+        pygame.Rect(3400, 450, 100, 25),
+        pygame.Rect(3750, 250, 50, 350),
+        pygame.Rect(3925, 250, 50, 350),
+        pygame.Rect(3800, 350, 35, 250),
+        pygame.Rect(3895, 350, 35, 250),
+        pygame.Rect(3525, 100, 50, 50),
+        pygame.Rect(3575, 125, 50, 25),
+
 ]
 
     terminals = [
@@ -430,6 +450,7 @@ def build_level(level):
         Terminal(x = 1025, y = 2175, **copy.deepcopy(PUZZLES[5]), timeLimit = 20.0, room="general"),
         Terminal(x = 3500, y = 1300, **copy.deepcopy(PUZZLES[4]), timeLimit=20.0, room="general"),
         Terminal(x = 3900, y = 2175, **copy.deepcopy(PUZZLES[5]), timeLimit=20.0, room="general"),
+        Terminal(x = 3190, y = 600, **copy.deepcopy(PUZZLES[3]), timeLimit=20.0, room="general"),
 
         # for the warden fight, do room="warden" instead
     ]
@@ -447,7 +468,8 @@ def build_level(level):
         Door(x = 2975, y = 1400, width = 50, height=75, openX= -0, openY = -100, requiredTerminals=[terminals[6], terminals[7], terminals[8]]),
         Door(x = 3800, y = 900, width=200, height=25, openX=200, openY= -0, requiredTerminals=[terminals[9]]),
         Door(x = 2975, y = 25, width=25, height=75, openX=-0, openY=100, requiredTerminals=[terminals[9], terminals[10]]),
-
+        Door(x = 3660, y = 25, width=25, height=125, openX = -0, openY = -125, requiredTerminals=[terminals[11]]),
+        Door(x = 3975, y = 25, width = 25, height = 75, openX = -0, openY = -75, requiredTerminals=[terminals[11]]),
 
     ]
 
@@ -478,7 +500,16 @@ def build_level(level):
         LoreKey(2500, -500, "ch1_2"),
         LoreKey(1825, 1750, "ch2_1"),
         LoreKey(3050, 1600, "ch2_2"),
+        LoreKey(3935, 675, "ch3_1"),
         
+    ]
+
+    checkPoints = [
+        Checkpoint(x = 100, y = 625, width = 100, height = 100),
+        Checkpoint(x = 2100, y = 25, width = 75, height = 700),
+        Checkpoint(x = 2300, y = 1250, width = 400, height = 50),
+        Checkpoint(x = 3050, y = 25, width = 50, height = 125),
+
     ]
 
     if len(rooms) > max(WARDEN_ARENA_ROOMS):
@@ -501,6 +532,7 @@ def build_level(level):
         "enemies": enemies,
         "doors": doors,
         "loreKeys": loreKeys,
+        "checkPoints": checkPoints
     }
 
 levelData = build_level(0)
@@ -510,6 +542,7 @@ terminals = levelData["terminals"]
 enemies = levelData["enemies"]
 doors = levelData["doors"]
 loreKeys = levelData["loreKeys"]
+checkPoints = levelData["checkPoints"]
 currRoom = 0
 
 player = Player(100, 675)
@@ -566,14 +599,15 @@ def resetLevel():
     currRoom = 0
     camera.snapToRoom(rooms[currRoom])
 
-def start_game(slot_index):
-    global current_slot, player, levelData, rooms, platforms, currRoom, terminals, enemies, doors, loreKeys, world_timer, timer_active
+def start_game(slot_index, restoreTimeAndJournal = True):
+    global current_slot, player, levelData, rooms, platforms, currRoom, terminals, enemies, doors, loreKeys, checkPoints, world_timer, timer_active
     current_slot = slot_index
     slot = save_manager.get_slot(slot_index)
     level = slot["level"]
-    journalManager.load_from_slot(slot.get("journal", []))
 
-    world_timer = slot.get("timer", 0.0)
+    if restoreTimeAndJournal:
+        journalManager.load_from_slot(slot.get("journal", []))
+        world_timer = slot.get("timer", 0.0)
     timer_active = True
 
     levelData = build_level(level)
@@ -583,6 +617,7 @@ def start_game(slot_index):
     enemies = levelData["enemies"]
     doors = levelData["doors"]
     loreKeys = levelData["loreKeys"]
+    checkPoints = levelData["checkPoints"]
 
     for key in loreKeys:
         if key.chapter_id in journalManager.unlocked:
@@ -628,6 +663,13 @@ def check_lore_keys():
             if journalManager.unlock(key.chapter_id):
                 reading_chapter = key.chapter_id
                 current_state = READING
+
+def checkCheckpoints():
+    for c in checkPoints:
+        touching = player.rect.colliderect(c.rect)
+        if touching and not c.playerEntry:
+            save_game()
+        c.playerEntry = touching
 
 def apply_choice(choice):
     global ending_text, ending_scroll, current_state, timer_active
@@ -891,11 +933,8 @@ while running:
                 journalManager.scroll_offset = 0
         elif current_state == GAME_OVER:
             if respawnBtn.is_clicked(event):
-                resetLevel()
-                current_state = PLAYING
+                current_state = start_game(current_slot, restoreTimeAndJournal=False)
             if gameOverMenuBtn.is_clicked(event):
-                resetLevel()
-                save_manager.resetRun(current_slot, journal = journalManager.to_list(), timer = world_timer)
                 current_state = MENU
         elif current_state == WARDEN_DIALOGUE and warden and warden.defeated:
             if btn_take_place.is_clicked(event):
@@ -960,6 +999,7 @@ while running:
             player.update(activePhysicsPlatforms, None, camera.isTrans, moveInput)
 
             check_lore_keys()
+            checkCheckpoints()
 
             playerCenter = player.rect.center
             for i, room in enumerate(rooms):
@@ -1067,6 +1107,13 @@ while running:
 
         for key in loreKeys:
             key.draw(screen, camera)
+
+        for c in checkPoints:
+            screenRect = camera.apply(c.rect)
+            cSurf = pygame.Surface((screenRect.width, screenRect.height), pygame.SRCALPHA)
+            cSurf.fill((255, 255, 0, 90))
+            screen.blit(cSurf, screenRect.topleft)
+            pygame.draw.rect(screen, YELLOW, screenRect, 2)
         
         if not camera.isTrans:
 
