@@ -19,6 +19,7 @@ NEXT_WAYPOINT_DIST = 20      # Distance threshold to switch to next node
 NEXT_WAYPOINT_DIST_Y = 40
 WAYPOINT_STUCK_FRAMES = 90        # ~1.5s making no progress on a node before trying another route
 NODE_BLOCK_DURATION_FRAMES = 300  # ~5s before a blocked node becomes usable again
+MAX_RETURNING_FRAMES = 900 #15s before it just says fuck u and becomes patrol, no amtter what (look i needed a fallback)
 
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -58,6 +59,7 @@ class Enemy:
         self.repath_timer = 0
         self.waypoint_stall_timer = 0
         self.blocked_nodes = {}   # node_id -> frames remaining before it's usable again
+        self.returning_timer = 0
 
         pygame.font.init()
         self.font = pygame.font.SysFont("Consolas", 14, bold=True)
@@ -93,6 +95,7 @@ class Enemy:
                     self.clear_path()
                     self.lastKnownX = None
                     self.lastKnownY = None
+                    self.returning_timer = 0
 
         if self.state == "CHASE":
             currSpeed = CHASE_SPEED
@@ -138,53 +141,62 @@ class Enemy:
             self.tryJumpTowards(targetYCheck)
 
         elif self.state == "RETURNING":
+            self.returning_timer += 1
 
-            if not self.path and not getattr(self, 'has_returned_path', False):
-                self.update_path_to(self.spawn_x, self.spawn_y)
-                self.has_returned_path = True
-
-            target_x, target_y = self.get_current_waypoint_pos()
-
-            if target_x is not None:
-                self.moveTowards(target_x, currSpeed)
-                targetYCheck = target_y
-
-                dist_x = abs(self.rect.centerx - target_x)
-                dist_y = abs(self.rect.centery - target_y)
-
-                if dist_x < NEXT_WAYPOINT_DIST and dist_y < NEXT_WAYPOINT_DIST_Y and self.on_ground:
-                    self.current_waypoint_idx += 1
-                    self.waypoint_stall_timer = 0
-                else:
-                    self.waypoint_stall_timer += 1
-                    if self.waypoint_stall_timer >= WAYPOINT_STUCK_FRAMES:
-                        self.waypoint_stall_timer = 0
-                        self.block_current_node_and_repath(self.spawn_x, self.spawn_y)
+            if self.returning_timer >= MAX_RETURNING_FRAMES:
+                self.blocked_nodes.clear()
+                self.clear_path()
+                self.has_returned_path = False
+                self.start_x = self.rect.centerx
+                self.state = "PATROL"
+                self.vel_x = PATROL_SPEED * self.facing
             else:
-                self.moveTowards(self.spawn_x, currSpeed)
-                targetYCheck = self.spawn_y
+                if not self.path and not getattr(self, 'has_returned_path', False):
+                    self.update_path_to(self.spawn_x, self.spawn_y)
+                    self.has_returned_path = True
 
-                self.waypoint_stall_timer += 1
-                if self.waypoint_stall_timer >= WAYPOINT_STUCK_FRAMES * 5:
-                    # Can't physically get back to spawn from here - stop trying
-                    # and just settle into patrol wherever it currently is.
-                    self.waypoint_stall_timer = 0
-                    self.blocked_nodes.clear()
+                target_x, target_y = self.get_current_waypoint_pos()
+
+                if target_x is not None:
+                    self.moveTowards(target_x, currSpeed)
+                    targetYCheck = target_y
+
+                    dist_x = abs(self.rect.centerx - target_x)
+                    dist_y = abs(self.rect.centery - target_y)
+
+                    if dist_x < NEXT_WAYPOINT_DIST and dist_y < NEXT_WAYPOINT_DIST_Y and self.on_ground:
+                        self.current_waypoint_idx += 1
+                        self.waypoint_stall_timer = 0
+                    else:
+                        self.waypoint_stall_timer += 1
+                        if self.waypoint_stall_timer >= WAYPOINT_STUCK_FRAMES:
+                            self.waypoint_stall_timer = 0
+                            self.block_current_node_and_repath(self.spawn_x, self.spawn_y)
+                else:
+                    self.moveTowards(self.spawn_x, currSpeed)
+                    targetYCheck = self.spawn_y
+
+                    self.waypoint_stall_timer += 1
+                    if self.waypoint_stall_timer >= WAYPOINT_STUCK_FRAMES * 5:
+                        # Can't physically get back to spawn from here - stop trying
+                        # and just settle into patrol wherever it currently is.
+                        self.waypoint_stall_timer = 0
+                        self.blocked_nodes.clear()
+                        self.clear_path()
+                        self.has_returned_path = False
+                        self.start_x = self.rect.centerx
+                        self.state = "PATROL"
+                        self.vel_x = PATROL_SPEED * self.facing
+
+                distToSpawn = math.hypot(self.spawn_x - self.rect.centerx, self.spawn_y - self.rect.centery)
+                if distToSpawn < NEXT_WAYPOINT_DIST or (abs(self.spawn_x - self.rect.centerx) < 2.5 and abs(self.spawn_y - self.rect.centery) < NEXT_WAYPOINT_DIST_Y):
                     self.clear_path()
                     self.has_returned_path = False
-                    self.start_x = self.rect.centerx
+                    self.rect.centerx = self.spawn_x
                     self.state = "PATROL"
                     self.vel_x = PATROL_SPEED * self.facing
 
-            distToSpawn = math.hypot(self.spawn_x - self.rect.centerx, self.spawn_y - self.rect.centery)
-            if distToSpawn < NEXT_WAYPOINT_DIST or (abs(self.spawn_x - self.rect.centerx) < 2.5 and abs(self.spawn_y - self.rect.centery) < NEXT_WAYPOINT_DIST_Y):
-                self.clear_path()
-                self.has_returned_path = False
-                self.rect.centerx = self.spawn_x
-                self.state = "PATROL"
-                self.vel_x = PATROL_SPEED * self.facing
-
-            self.tryJumpTowards(targetYCheck)
+                self.tryJumpTowards(targetYCheck)
 
         elif self.state == "PATROL":
             if self.rect.centerx >= self.start_x + self.patrol_range:
@@ -262,9 +274,10 @@ class Enemy:
             self.vel_y = JUMP_STRENGTH * 0.9
             self.hasdoubleJumped = True
             self.doubleJumpCd = 20
+
     def update_path_to(self, target_x, target_y):
         if not self.waypoints:
-            self.clear_path()
+            self.fail_path()
             return
 
         available = {n: d for n, d in self.waypoints.items() if n not in self.blocked_nodes}
@@ -307,7 +320,7 @@ class Enemy:
                     new_path.append(neighbor)
                     queue.append(new_path)
 
-        self.clear_path()
+        self.fail_path()
 
     def get_current_waypoint_pos(self):
         if self.path and self.current_waypoint_idx < len(self.path):
@@ -321,6 +334,10 @@ class Enemy:
         self.current_waypoint_idx = 0
         self.has_returned_path = False
         self.waypoint_stall_timer = 0
+
+    def fail_path(self):
+        self.path = []
+        self.current_waypoint_idx = 0
 
     def block_current_node_and_repath(self, final_x, final_y):
         if self.path and self.current_waypoint_idx < len(self.path):

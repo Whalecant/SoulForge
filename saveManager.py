@@ -62,15 +62,16 @@ class SaveManager:
         with open(self.filepath, "w") as f:
             json.dump(self.data, f, indent=2)
 
-    def write_slot(self, index, level, player_x, player_y, terminalsData = None, enemiesData = None, timer = 0.0):
+    def write_slot(self, index, level, player_x, player_y, terminalsData = None, enemiesData = None, timer = 0.0, room = 0):
         slot = self.data["slots"][index]
         self.data["slots"][index] = {
             "level": level,
+            "room": room,
             "player_x": player_x,
             "player_y": player_y,
             "exists": True,
             "timer": timer,
-            "journal": slot.get("jorunal", []),
+            "journal": slot.get("journal", []),
             "endings": slot.get("endings", []),
             "terminals": terminalsData if terminalsData is not None else [],
             "enemies": enemiesData if enemiesData is not None else [],
@@ -87,6 +88,21 @@ class SaveManager:
             "terminals": [],
         }
         self.save()
+
+    def resetRun(self, index, journal=None, timer=0.0):
+        slot = self.data["slots"][index]
+        self.data["slots"][index] = {
+            "level": 0,
+            "room": 0,
+            "player_x": 100,
+            "player_y": 675,
+            "exists": False,
+            "timer": timer,
+            "journal": journal if journal is not None else slot.get("journal", []),
+            "endings": slot.get("endings", []),
+            "terminals": [],
+            "enemies": [],
+        }
 
     def get_slot(self, index):
         return self.data["slots"][index]

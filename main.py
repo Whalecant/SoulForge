@@ -113,36 +113,38 @@ WAYPOINTS = {
     "r0_floor_right_backup": (725, 685, ["r0_floor_right"]),
     "r0_floor_left_backup": (400, 500, ["r0_floor_left", "r0_plat_1", "r0_floor_right"]),
     "r0_plat_1": (275, 510, ["r0_floor_left", "r0_floor_left_backup",  "r0_plat_3"]),
-    "r0_plat_2": (830, 590, ["r0_floor_right", "r0_plat_1", "r1_plat_1"]),
-    "r0_trans": (475, 685, ["r0_floor_left", "r0_floor_right", "r2_plat_4"]),
+    "r0_plat_2": (830, 590, ["r0_floor_right", "r0_plat_1", "r2_plat_1"]),
+    "r0_trans": (475, 685, ["r0_floor_left", "r0_floor_right", "r1_plat_4"]),
     "r0_plat_3": (450, 350, ["r0_plat_1"]),
 
-    # room 1 (x: 1000 - 2000, y: 0 - 750)
-    "r1_plat_1": (1125, 510, ["r0_plat_2", "r1_floor", "r1_plat_2"]),
-    "r1_floor": (1500, 685, ["r1_plat_1"]),
-    "r1_plat_2": (1325, 410, ["r1_plat_1", "r1_plat_3"]),
-    "r1_plat_3": (1500, 210, ["r1_plat_2"]),
+    
+    # room 1 (x: 0 - 1000, y: 750 - 1500)
+    "r1_floor": (400, 1435, ["r1_floor_right", "r1_floor_left_air", "r1_floor_above"]),
+    "r1_floor_above": (450, 1375, ["r1_floor", "r1_plat_2"]),
+    "r1_plat_2": (650, 1310, ["r1_floor_above", "r1_plat_1", "r1_floor_right", "r1_plat_5"]),
+    "r1_connector_1": (600, 850, ["r1_plat_4", "r1_plat_3"]),
+    "r1_connector_2": (325, 875, ["r1_plat_4", "r1_plat_1"]),
+    "r1_plat_1": (300, 1185, ["r1_connector_2", "r1_plat_3", "r1_floor_left_air", "r1_plat_2"]),
+    "r1_plat_3": (650, 1010, ["r1_plat_1", "r1_connector_1", "r1_plat_5"]),
+    "r1_plat_4": (475, 835, ["r0_trans", "r1_connector_1", "r1_connector_2"]),
+    "r1_plat_5": (770, 1110, ["r1_plat_3", "r1_plat_2"]),
+    "r1_floor_right": (900, 1400, ["r1_floor", "r1_plat_2"]),
+    "r1_floor_left_air": (125, 1300, ["r1_floor", "r1_plat_1"]),
 
-    # room 2 (x: 0 - 1000, y: 750 - 1500)
-    "r2_floor": (400, 1435, ["r2_floor_right", "r2_floor_left_air", "r2_floor_above"]),
-    "r2_floor_above": (450, 1375, ["r2_floor", "r2_plat_2"]),
-    "r2_plat_2": (650, 1310, ["r2_floor_above", "r2_plat_1", "r2_floor_right", "r2_plat_5"]),
-    "r2_connector_1": (600, 850, ["r2_plat_4", "r2_plat_3"]),
-    "r2_connector_2": (325, 875, ["r2_plat_4", "r2_plat_1"]),
-    "r2_plat_1": (300, 1185, ["r2_connector_2", "r2_plat_3", "r2_floor_left_air", "r2_plat_2"]),
-    "r2_plat_3": (650, 1010, ["r2_plat_1", "r2_connector_1", "r2_plat_5"]),
-    "r2_plat_4": (475, 835, ["r0_trans", "r2_connector_1", "r2_connector_2"]),
-    "r2_plat_5": (770, 1110, ["r2_plat_3", "r2_plat_2"]),
-    "r2_floor_right": (900, 1400, ["r2_floor", "r2_plat_2"]),
-    "r2_floor_left_air": (125, 1300, ["r2_floor", "r2_plat_1"]),
+    # room 2 (x: 1000 - 2000, y: 0 - 750)
+    "r2_plat_1": (1125, 510, ["r0_plat_2", "r2_floor", "r2_plat_2"]),
+    "r2_floor": (1500, 685, ["r2_plat_1"]),
+    "r2_plat_2": (1325, 410, ["r2_plat_1", "r2_plat_3"]),
+    "r2_plat_3": (1500, 210, ["r2_plat_2"]),
 
     # room 3 (x: 2000 - 3000 y: 0 - 750)
-    "r3_floor_right": (2675, 675, ["r3_floor_left", "r3_floor_mid"]),
-    "r3_floor_left": (2250, 675, ["r3_floor_right", "r3_floor_mid"]),
-    "r3_floor_mid": (2350, 650, ["r3_floor_right", "r3_floor_left"]),
-    "r3_plat_1": (2750, 550, ["r3_floor_right", "r3_floor_mid"]),
-    "r3_wall_1": (2440, 350, ["r3_floor_mid", "r3_wall_2"]),
-    "r3_wall_2": (2570, 350, ["r3_floor_mid", "r3_wall_1", "r3_plat_1"]),
+    "r3_floor_right": (2750, 675, ["r3_floor_left", "r3_floor_mid_1", "r3_floor_mid_2"]),
+    "r3_floor_left": (2250, 675, ["r3_floor_right", "r3_floor_mid_1", "r3_floor_mid_2"]),
+    "r3_floor_mid_1": (2350, 650, ["r3_floor_right", "r3_floor_left", "r3_floor_mid_2", "r3_plat_1", "r3_wall_1", "r3_wall_2"]),
+    "r3_floor_mid_2": (2650, 650, ["r3_floor_left", "r3_floor_right", "r3_floor_mid_1", "r3_plat_1", "r3_wall_1", "r3_wall_2"]),
+    "r3_plat_1": (2750, 550, ["r3_floor_right", "r3_floor_mid_1", "r3_floor_mid_2"]),
+    "r3_wall_1": (2440, 350, ["r3_floor_mid_1", "r3_wall_2", "r3_floor_mid_2"]),
+    "r3_wall_2": (2570, 350, ["r3_floor_mid_1", "r3_wall_1", "r3_plat_1", "r3_floor_mid_2"]),
 
     # room 4(x: 2000 - 3000, y: -750  - 0)
     "r4_floor_right": (2700, -75, ["r4_floor_left"]),
@@ -237,8 +239,8 @@ def build_level(level):
 
     rooms = [
         pygame.Rect(0, 0, 1000, 750), #room 0
-        pygame.Rect(1000, 0, 1000, 750), #room 1
-        pygame.Rect(0, 750, 1000, 750),  #room 2
+        pygame.Rect(0, 750, 1000, 750),  #room 1
+        pygame.Rect(1000, 0, 1000, 750), #room 2
         pygame.Rect(2000, 0, 1000, 750), #room 3
         pygame.Rect(2000, -750, 1000, 750), #room 4
         pygame.Rect(2000, -1500, 1000, 750), #room 5
@@ -276,15 +278,7 @@ def build_level(level):
         pygame.Rect(425, 375, 150, 20),
         pygame.Rect(675, 200, 50, 20),
 
-        #room 1 (1000 - 2000, 0 - 750)
-        pygame.Rect(1000, 725, 1000, 40),
-        pygame.Rect(1050, 550, 150, 20),
-        pygame.Rect(1250, 450, 150, 20),
-        pygame.Rect(1400, 300, 200, 20),
-        pygame.Rect(1700, 100, 200, 650),
-        pygame.Rect(1000, 0, 1000, 25),
-
-        #room 2 (0 - 1000, 750 - 1500)
+        #room 1 (0 - 1000, 750 - 1500)
         pygame.Rect(0, 1475, 1000, 40),
         pygame.Rect(200, 1225, 200, 30),
         pygame.Rect(500, 1350, 300, 30),
@@ -294,6 +288,14 @@ def build_level(level):
         pygame.Rect(25, 1325, 300, 30),
         pygame.Rect(700, 1150, 150, 30),
         pygame.Rect(975, 750, 25, 750),
+
+        #room 2 (1000 - 2000, 0 - 750)
+        pygame.Rect(1000, 725, 1000, 40),
+        pygame.Rect(1050, 550, 150, 20),
+        pygame.Rect(1250, 450, 150, 20),
+        pygame.Rect(1400, 300, 200, 20),
+        pygame.Rect(1700, 100, 200, 650),
+        pygame.Rect(1000, 0, 1000, 25),
 
         #room 3 (2000 - 3000, 0 - 750)
         pygame.Rect(2000, 725, 450, 40), #floor left
@@ -307,6 +309,7 @@ def build_level(level):
         pygame.Rect(2550, 85, 25, 225),
         pygame.Rect(2750, 85, 25, 225),
         pygame.Rect(2725, 575, 200, 25),
+        pygame.Rect(2975, 100, 50, 650),
 
         #room 4 (2000 - 3000, -750 - 0)
         pygame.Rect(2000, -750, 25, 750),
@@ -352,7 +355,7 @@ def build_level(level):
         pygame.Rect(1150, 875, 100, 20),
         pygame.Rect(1400, 875, 250, 20),
         pygame.Rect(1230, 875, 20, 250),
-        pygame.Rect(1400, 875, 20, 525),
+        pygame.Rect(1400, 875, 20, 425),
         pygame.Rect(1230, 1125, 175, 20),
         pygame.Rect(1650, 875, 20, 350),
         pygame.Rect(1850, 875, 20, 350),
@@ -380,8 +383,40 @@ def build_level(level):
         pygame.Rect(1300, 2150, 25, 75),
         pygame.Rect(1200, 2100, 25, 75),
 
+        #room 9 (3000 - 4000, 750 - 1500)
+        pygame.Rect(3000, 750, 1000, 25), #roof
+        pygame.Rect(3975, 750, 25, 750), #right wall
+        pygame.Rect(3000, 1475, 800, 50), #floor
+        pygame.Rect(3250, 900, 20, 600),
+        pygame.Rect(3025, 1380, 150, 20),
+        pygame.Rect(3100, 1230, 150, 20),
+        pygame.Rect(3025, 1080, 150, 20),
+        pygame.Rect(3100, 880, 250, 20),
+        pygame.Rect(3450, 750, 20, 250),
+        pygame.Rect(3450, 1200, 200, 20),
+        pygame.Rect(3650, 900, 20, 320),
+        pygame.Rect(3550, 900, 100, 20),
+        pygame.Rect(3470, 1350, 150, 20),
+        pygame.Rect(3800, 900, 20, 625),
+        pygame.Rect(3450, 1200, 20, 170),
 
-    ]
+        #room 10 (3000 - 4000, 1500 - 2250)
+        pygame.Rect(3975, 1500, 25, 750), #wall right
+        pygame.Rect(3000, 2225, 1000, 25), # floor
+        pygame.Rect(3000, 1500, 25, 750),
+        pygame.Rect(3800, 1500, 20, 300),
+        pygame.Rect(3100, 2100, 900, 25),
+        pygame.Rect(3700, 1950, 100, 20),
+        pygame.Rect(3500, 1650, 20, 300),
+        pygame.Rect(3600, 1780, 300, 20),
+        pygame.Rect(3450, 1650, 150, 20),
+        pygame.Rect(3375, 1500, 20, 275),
+        pygame.Rect(3100, 1925, 200, 20),
+        pygame.Rect(3295, 1775, 100, 20),
+        pygame.Rect(3025, 1650, 100, 25),
+        pygame.Rect(3100, 1925, 25, 175),
+
+]
 
     terminals = [
         Terminal(x = 250, y = 500, **copy.deepcopy(PUZZLES[0]) ,timeLimit = 20.0, room="general"),
@@ -393,7 +428,8 @@ def build_level(level):
         Terminal(x = 2400, y = 1250, **copy.deepcopy(PUZZLES[3]), timeLimit=20.0, room="general"),
         Terminal(x = 1515, y = 925, **copy.deepcopy(PUZZLES[4]), timeLimit=20.0, room="general"),
         Terminal(x = 1025, y = 2175, **copy.deepcopy(PUZZLES[5]), timeLimit = 20.0, room="general"),
-
+        Terminal(x = 3500, y = 1300, **copy.deepcopy(PUZZLES[4]), timeLimit=20.0, room="general"),
+        Terminal(x = 3900, y = 2175, **copy.deepcopy(PUZZLES[5]), timeLimit=20.0, room="general"),
 
         # for the warden fight, do room="warden" instead
     ]
@@ -407,7 +443,12 @@ def build_level(level):
         Door(x = 2450, y = -750, width = 100, height = 25,  openX = -100, openY = -0, requiredTerminals=[terminals[3], terminals[4]]),
         Door(x = 1975, y = 1400, width=50, height=75, openX = -0, openY = -100, requiredTerminals=[terminals[6]]),
         Door(x = 1450, y = 1475, width = 100, height=50, openX = -100, openY = -0, requiredTerminals=[terminals[6], terminals[7]]),
-        Door(x = 2975, y = 1400, width = 50, height=75, openX= -0, openY = -100, requiredTerminals=[terminals[6], terminals[7], terminals[8]])
+        Door(x = 1400, y = 1300, width = 20, height = 100, openX = -0, openY = -100, requiredTerminals=[terminals[6], terminals[7]]),
+        Door(x = 2975, y = 1400, width = 50, height=75, openX= -0, openY = -100, requiredTerminals=[terminals[6], terminals[7], terminals[8]]),
+        Door(x = 3800, y = 900, width=200, height=25, openX=200, openY= -0, requiredTerminals=[terminals[9]]),
+        Door(x = 2975, y = 25, width=25, height=75, openX=-0, openY=100, requiredTerminals=[terminals[9], terminals[10]]),
+
+
     ]
 
     enemies = [
@@ -423,6 +464,10 @@ def build_level(level):
         Enemy(1450, 1675, patrol_range=100, waypoints=WAYPOINTS),
         Enemy(1175, 2025, patrol_range=750, waypoints=WAYPOINTS),
         Enemy(1700, 2025, patrol_range=700, waypoints=WAYPOINTS),
+        Enemy(3400, 1425, patrol_range=500, waypoints=WAYPOINTS),
+        Enemy(3700, 1425, patrol_range=500, waypoints=WAYPOINTS),
+        Enemy(3200, 2050, patrol_range=800, waypoints=WAYPOINTS),
+        Enemy(3700, 2050, patrol_range=800, waypoints=WAYPOINTS),
     ]
 
     loreKeys = [
@@ -431,7 +476,8 @@ def build_level(level):
         LoreKey(1800, 55, "prologue_3"),
         LoreKey(2750, 40, "ch1_1"),
         LoreKey(2500, -500, "ch1_2"),
-        LoreKey(1825, 1750, "ch2_2"),
+        LoreKey(1825, 1750, "ch2_1"),
+        LoreKey(3050, 1600, "ch2_2"),
         
     ]
 
@@ -485,7 +531,8 @@ def save_game():
         player.rect.y,
         terminalsData,
         enemiesData,
-        timer = world_timer
+        timer = world_timer,
+        room = currRoom
     )
 
     save_manager.get_slot(current_slot)["journal"] = journalManager.to_list()
@@ -579,7 +626,6 @@ def check_lore_keys():
         if not key.collected and player.rect.colliderect(key.rect):
             key.collected = True
             if journalManager.unlock(key.chapter_id):
-                save_game()
                 reading_chapter = key.chapter_id
                 current_state = READING
 
@@ -849,6 +895,7 @@ while running:
                 current_state = PLAYING
             if gameOverMenuBtn.is_clicked(event):
                 resetLevel()
+                save_manager.resetRun(current_slot, journal = journalManager.to_list(), timer = world_timer)
                 current_state = MENU
         elif current_state == WARDEN_DIALOGUE and warden and warden.defeated:
             if btn_take_place.is_clicked(event):
@@ -974,8 +1021,18 @@ while running:
             slot = save_manager.get_slot(i)
             slot_buttons[i].draw(screen)
             reset_buttons[i].draw(screen)
-            if slot["exists"]:
-                info = f"Lv {slot['level']}  X:{slot['player_x']}  Y:{slot['player_y']}"
+
+            journalCount = len(slot.get("journal", []))
+            timer = slot.get("timer", 0.0)
+            hasProgress = slot["exists"] or journalCount > 0 or timer > 0.0
+
+            if hasProgress:
+                timer = slot.get('timer', 0.0)
+                mins = int(timer // 60)
+                secs = int(timer % 60)
+                milis = int((timer%1) *1000)
+                journalCount = len(slot.get("journal", []))
+                info = f"{mins:02d}:{secs:02d}.{milis:03d}             Room: {slot.get('room', 0)+1}             Logs: {journalCount}"
             else:
                 info = "Empty"
             info_surf = small_font.render(info, True, YELLOW)
@@ -1040,7 +1097,8 @@ while running:
         if current_state == PLAYING:
             mins = int(world_timer // 60)
             secs = int(world_timer % 60)
-            timerText = f"{mins:02d}:{secs:02d}"
+            milis = int((world_timer%1) * 1000)
+            timerText = f"{mins:02d}:{secs:02d}.{milis:03d}"
             timerSurf = small_font.render(timerText, True, WHITE)
             screen.blit(timerSurf, (SCREEN_WIDTH - timerSurf.get_width() - 50, 25))
 
