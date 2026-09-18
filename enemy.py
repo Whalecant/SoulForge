@@ -21,6 +21,8 @@ WAYPOINT_STUCK_FRAMES = 90        # ~1.5s making no progress on a node before tr
 NODE_BLOCK_DURATION_FRAMES = 300  # ~5s before a blocked node becomes usable again
 MAX_RETURNING_FRAMES = 900 #15s before it just says fuck u and becomes patrol, no amtter what (look i needed a fallback)
 
+CHECKPOINT_RESET_DIST = 300
+
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (200, 50, 50)
@@ -31,7 +33,7 @@ YELLOW = (255, 220, 50)
 GREEN = (50, 200, 50)
 
 class Enemy:
-    def __init__(self, x, y, patrol_range=500, waypoints=None):
+    def __init__(self, x, y, patrol_range=500, waypoints=None, facing = 1):
         self.rect = pygame.Rect(x, y, 30, 40)
         self.hitbox = self.rect.copy()
         self.vel_x = PATROL_SPEED
@@ -42,7 +44,7 @@ class Enemy:
         self.start_y = y
         self.spawn_x = x
         self.spawn_y = y + 30
-        self.facing = 1
+        self.facing = facing
 
         self.state = "PATROL"
         self.chaseTimer = 0
@@ -362,7 +364,7 @@ class Enemy:
 
         dx = player.rect.centerx - self.rect.centerx
         dy = player.rect.centery - self.rect.centery
-        if (dx * dx + dy * dy) < 2500:
+        if (dx * dx + dy * dy) < 100:
             return True
 
         visionRect = self.get_vision_rect()
@@ -440,35 +442,55 @@ class Enemy:
                     n_draw_pos = camera.apply_point((nx, ny)) if camera and hasattr(camera, 'apply_point') else (camera.apply(pygame.Rect(nx, ny, 1, 1)).topleft if camera else (nx, ny))
                     pygame.draw.line(surface, (0, 255, 255), draw_pos, n_draw_pos, 1)
 
-    def saveDict(self):
-        return{
-            "x": self.rect.x,
-            "y": self.rect.y,
-            "facing": self.facing,
-            "state": self.state,
-            "spawn_x": self.spawn_x,
-            "spawn_y": self.spawn_y,
-            "chaseTimer": self.chaseTimer,
-            "lastKnownX": self.lastKnownX,
-            "lastKnownY": self.lastKnownY
-        }
+    def saveDict(self, checkpoints = None):
+        nearCheckpoints = False
+
+        if checkpoints:
+            for c in checkpoints:
+                dx = c.rect.centerx - self.rect.centerx
+                dy = c.rect.centery - self.rect.centery
+
+                if(dx * dx + dy * dy) <= CHECKPOINT_RESET_DIST ** 2:
+                    nearCheckpoints = True
+                    break
+
+        if nearCheckpoints:
+            return{
+                "x": self.spawn_x,
+                "y": self.spawn_y - 30,
+                "facing": self.facing,
+                "start_x": self.spawn_x,
+                "spawn_x": self.spawn_x,
+                "spawn_y": self.spawn_y,
+            }
+        else:
+            return{
+                "x": self.rect.x,
+                "y": self.rect.y,
+                "facing": self.facing,
+                "start_x": self.start_x,
+                "spawn_x": self.spawn_x,
+                "spawn_y": self.spawn_y,
+            }
 
     def loadDict(self, data):
         self.rect.x = data.get("x", self.rect.x)
         self.rect.y = data.get("y", self.rect.y)
         self.hitbox.x = self.rect.x
         self.hitbox.y = self.rect.y
+
         self.facing = data.get("facing", self.facing)
-        self.state = data.get("state", "PATROL")
+        self.start_x = data.get("start_x", self.rect.centerx)
         self.spawn_x = data.get("spawn_x", self.spawn_x)
         self.spawn_y = data.get("spawn_y", self.spawn_y)
 
-        self.chaseTimer = data.get("chaseTimer", 0)
-        self.lastKnownX = data.get("lastKnownX", None)
-        self.lastKnownY = data.get("lastKnownY", None)
-
+        self.state = "PATROL"
+        self.vel_x = PATROL_SPEED * self.facing
+        self.vel_y = 0
+        self.chaseTimer = 0
+        self.lastKnownX = None
+        self.lastKnownY = None
+        self.player_spotted = False
+        self.returning_timer = 0
+        self.blocked_nodes.clear()
         self.clear_path()
-        if self.state == "CHASE" and self.lastKnownX is not None and self.lastKnownY is not None:
-            self.update_path_to(self.lastKnownX, self.lastKnownY)
-        elif self.state == "RETURNING":
-            self.update_path_to(self.spawn_x, self.spawn_y)

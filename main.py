@@ -102,7 +102,28 @@ PUZZLES = [ #add more accordingly
     {
         "walls": [[2, 1], [3, 1], [3, 2], [3, 2], [1, 5], [3, 6], [1, 7] , [4, 7]],
         "dummyCount": 5
-    }
+    },
+    {
+        "keyPos": [5, 4],
+        "exitPos": [5, 6],
+        "walls": [[3,2], [2, 3], [4, 4], [1, 5], [2, 5], [4, 5], [5, 5], [4, 6], [2, 7]],
+        "dummies": [[3, 3], [1, 4], [0, 5], [3, 5]],
+    },
+    {
+        "keyPos": [5, 4],
+        "exitPos": [5, 6],
+        "walls": [[3,0], [0, 2], [1, 2], [2, 2], [2, 3], [4, 4], [5, 5], [3, 6], [1, 7]],
+        "dummies": [[1, 0], [4, 2], [5, 2], [2, 5], [4, 6]],
+    },
+    {
+        "walls": [[1, 0], [3, 0], [1, 2], [3, 2], [0, 3], [5, 3], [0, 5], [2, 6], [1, 7], [2, 7]],
+        "dummyCount": 5,
+    },
+    {
+        "walls": [[1, 0], [5, 0], [1, 1], [4, 1], [4, 4], [0, 5], [2, 5], [1, 7], [3, 7], [4, 7]],
+        "dummyCount": 5,
+    },
+
 
 ]
 
@@ -183,6 +204,10 @@ WAYPOINTS = {
     "r6_floor_1": (2150, 1450, ["r6_plat_4_2"]),
     "r6_floor_2": (2850, 1450, ["r6_plat_4_3"]),
 
+    #room 12 (x : 4000 - 5000, y: 0 - 750)
+    "r12_enemy_plat": (4450, 200, ["r12_plat_low"]),
+    "r12_plat_low": (4400, 475, ["r12_enemy_plat"]),
+
 }
 
 current_state = MENU
@@ -205,6 +230,7 @@ alarmOverlay = False
 
 world_timer = 0.0
 timer_active = False
+saveNotificationTimer = 0.0
 
 btn_start = Button("START", SCREEN_WIDTH // 2 - 100, 250, 200, 55, BLUE, LIGHT_BLUE, menu_font)
 btn_quit = Button("QUIT", SCREEN_WIDTH // 2 - 100, 330, 200, 55, RED, LIGHT_RED, menu_font)
@@ -233,7 +259,6 @@ for i in range(3):
     reset_buttons.append(Button("RESET", SCREEN_WIDTH // 2 + 70, y, 130, 60, RED, LIGHT_RED, small_font))
 
 
-
 def build_level(level):
     global warden
     warden = None
@@ -260,10 +285,10 @@ def build_level(level):
         pygame.Rect(7000, -1500, 1000, 750), #room 18
         pygame.Rect(6000, -1500, 1000, 750), #room 19
         pygame.Rect(6000, -2250, 1000, 750), #room 20 (warden room 1)
-        pygame.Rect(7000, -2250, 1000, 750), #room 21 (warden room 2)
+        pygame.Rect(5000, -2250, 1000, 750), #room 21 (warden room 2)
         pygame.Rect(6000, -3000, 1000, 750), #room 22 (warden room 3)
-        pygame.Rect(7000, -3000, 1000, 750), #room 23 (warden room 4)
-        pygame.Rect(8000, -3000, 1000, 750), #room 24 (ending room) 
+        pygame.Rect(5000, -3000, 1000, 750), #room 23 (warden room 4)
+        pygame.Rect(7000, -3000, 1000, 750), #room 24 (ending room) 
 
         #build rooms off of this :thumbsUp:
     ]
@@ -297,6 +322,7 @@ def build_level(level):
         pygame.Rect(1400, 300, 200, 20),
         pygame.Rect(1700, 100, 200, 650),
         pygame.Rect(1000, 0, 1000, 25),
+        pygame.Rect(1900, 500, 150, 250),
 
         #room 3 (2000 - 3000, 0 - 750)
         pygame.Rect(2000, 725, 450, 40), #floor left
@@ -433,8 +459,114 @@ def build_level(level):
         pygame.Rect(3925, 250, 50, 350),
         pygame.Rect(3800, 350, 35, 250),
         pygame.Rect(3895, 350, 35, 250),
-        pygame.Rect(3525, 100, 50, 50),
-        pygame.Rect(3575, 125, 50, 25),
+        pygame.Rect(3550, 100, 50, 50),
+        pygame.Rect(3600, 125, 50, 25),
+
+        #room 12 (4000 - 5000, 0 - 750)
+        pygame.Rect(4000, -25, 450, 50), #roof left
+        pygame.Rect(4550, -25, 450, 50), #rooft right
+        pygame.Rect(4000, 725, 1000, 25), #floor
+        pygame.Rect(4975, 0, 50, 150), #right wall up
+        pygame.Rect(4975, 350, 50, 400), #right wall down
+        pygame.Rect(4075, 0, 10, 400),
+        pygame.Rect(4150, 300, 10, 250),
+        pygame.Rect(4200, 75, 100, 10),
+        pygame.Rect(4300, 75, 10, 425),
+        pygame.Rect(4400, 250, 100, 10),
+        pygame.Rect(4300, 500, 200, 10),
+        pygame.Rect(4600, 75, 25, 500),
+
+        #room 13(4000 - 5000, -750 - 0)
+        pygame.Rect(4000, -750, 25, 750),
+        pygame.Rect(4000, -750, 1000, 25),
+        pygame.Rect(4975, -600, 50, 600),
+        pygame.Rect(4150, -160, 550, 10),
+        pygame.Rect(4150, -310, 550, 10),
+        pygame.Rect(4150, -460, 550, 10),
+        pygame.Rect(4150, -600, 550, 10),
+        pygame.Rect(4850, -750, 25, 650),
+
+        #room 14(5000 - 6000, 0 - 750)
+        pygame.Rect(5000, 0, 1000, 25),
+        pygame.Rect(5975, 0, 25, 750),
+        pygame.Rect(5000, 725, 1000, 25),
+        pygame.Rect(5000, 600, 200, 150),
+        pygame.Rect(5200, 125, 25, 400),
+        pygame.Rect(5200, 500, 700, 25),
+        pygame.Rect(5400, 600, 100, 25),
+        pygame.Rect(5700, 600, 100, 25),
+        pygame.Rect(5900, 100, 25, 425),
+        pygame.Rect(5300, 250, 600, 25),
+        pygame.Rect(5300, 125, 25, 125),
+        pygame.Rect(5575, 125, 100, 25),
+        pygame.Rect(5400, 350, 25, 150),
+        pygame.Rect(5550, 250, 25, 150),
+        pygame.Rect(5700, 350, 25, 150),
+
+        #room 15(5000 - 6000, -750 - 0)
+        pygame.Rect(5000, -750, 1000, 25),
+        pygame.Rect(5975, -750, 50, 650),
+        pygame.Rect(5000, -25, 1000, 25),
+        pygame.Rect(5000, -350, 100, 25),
+        pygame.Rect(5075, -750, 25, 250),
+        pygame.Rect(5200, -600, 200, 25),
+        pygame.Rect(5300, -600, 25, 500),
+        pygame.Rect(5500, -750, 25, 300),
+        pygame.Rect(5400, -300, 100, 25),
+        pygame.Rect(5600, -500, 25, 400),
+        pygame.Rect(5600, -500, 200, 25),
+        pygame.Rect(5800, -500, 25, 250),
+        pygame.Rect(5800, -200, 100, 25),
+        pygame.Rect(5900, -200, 25, 100),
+
+        #room 16 (6000 - 7000, -750 - 0)
+        pygame.Rect(6000, -25, 1000, 25), #floor
+        pygame.Rect(6200, -750, 800, 25), #roof
+        pygame.Rect(6975, -750, 50, 600), # right wall
+        pygame.Rect(6100, -100, 100, 100),
+        pygame.Rect(6800, -100, 100, 100),
+        pygame.Rect(6500, -750, 25, 400),
+        pygame.Rect(6100, -400, 300, 25),
+        pygame.Rect(6600, -400, 300, 25),
+        pygame.Rect(6300, -550, 100,  25),
+        pygame.Rect(6600, -550, 100, 25),
+
+        #room 17 (7000 - 8000, -750 - 0)
+        pygame.Rect(7000, -25, 1000, 25), #floor
+        pygame.Rect(7975, -750, 25, 750), #right wall
+        pygame.Rect(7000, -750, 725, 25),
+        pygame.Rect(7200, -250, 25, 250),
+        pygame.Rect(7150, -275, 100, 25),
+        pygame.Rect(7025, -350, 200, 25),
+        pygame.Rect(7025, -475, 75, 25),
+        pygame.Rect(7100, -650, 25, 200),
+        pygame.Rect(7200, -750, 25, 175),
+        pygame.Rect(7400, -525, 150, 25),
+        pygame.Rect(7600, -550, 25, 250),
+        pygame.Rect(7600, -200, 100, 25),
+        pygame.Rect(7700, -400, 25, 225),
+        pygame.Rect(7775, -550, 25, 150),
+        pygame.Rect(7850, -325, 150, 25),
+        pygame.Rect(7900, -750, 100, 225),
+        pygame.Rect(7600, -550, 250, 25),
+
+        #room 18 (7000 - 8000, -1500 - 750) [This is a troll room... just felt like it lol]
+        pygame.Rect(7000, -775, 725, 25),
+        pygame.Rect(7900, -775, 100, 25),
+        pygame.Rect(7975, -1650, 25, 900),
+        pygame.Rect(7000, -1650, 25, 900),
+        pygame.Rect(7000, -1650, 1000, 25),
+
+        #room 19 (6000 - 7000, -1500 - -750)
+        pygame.Rect(6000, -1500, 25, 750),
+        pygame.Rect(6200, -775, 1000, 25),
+        pygame.Rect(6975, -1500, 25, 750),
+        pygame.Rect(6125, -1500, 900, 25),
+        pygame.Rect(6480, -1250, 40, 250),
+
+
+
+
 
 ]
 
@@ -451,7 +583,20 @@ def build_level(level):
         Terminal(x = 3500, y = 1300, **copy.deepcopy(PUZZLES[4]), timeLimit=20.0, room="general"),
         Terminal(x = 3900, y = 2175, **copy.deepcopy(PUZZLES[5]), timeLimit=20.0, room="general"),
         Terminal(x = 3190, y = 600, **copy.deepcopy(PUZZLES[3]), timeLimit=20.0, room="general"),
+        Terminal(x = 4625, y = 450, **copy.deepcopy(PUZZLES[4]), timeLimit=20.0, room="general"),
+        Terminal(x=4650, y=-75, **copy.deepcopy(PUZZLES[5]), timeLimit=20.0, room="general"),
+        Terminal(x=5800, y=450, **copy.deepcopy(PUZZLES[4]), timeLimit=20.0, room="general"),
+        Terminal(x=5425, y=-350, **copy.deepcopy(PUZZLES[5]), timeLimit=20.0, room="general"),
 
+        Terminal(x=6325, y = -450, **copy.deepcopy(PUZZLES[6]), timeLimit=20.0, room="general"),
+        Terminal(x=6650, y = -450, **copy.deepcopy(PUZZLES[7]), timeLimit=20.0, room="general"),
+
+        Terminal(x = 7050, y = -525, **copy.deepcopy(PUZZLES[8]), timeLimit=20.0, room="general"),
+        Terminal(x = 7900, y=-375, **copy.deepcopy(PUZZLES[9]), timeLimit=20.0, room="general"),
+
+        Terminal(x = 7550, y = -825, **copy.deepcopy(PUZZLES[4]), timeLimit=20.0, room="general"),
+
+        Terminal(x = 6480, y = -950, **copy.deepcopy(PUZZLES[5]), timeLimit=20.0, room="general"),
         # for the warden fight, do room="warden" instead
     ]
 
@@ -470,6 +615,31 @@ def build_level(level):
         Door(x = 2975, y = 25, width=25, height=75, openX=-0, openY=100, requiredTerminals=[terminals[9], terminals[10]]),
         Door(x = 3660, y = 25, width=25, height=125, openX = -0, openY = -125, requiredTerminals=[terminals[11]]),
         Door(x = 3975, y = 25, width = 25, height = 75, openX = -0, openY = -75, requiredTerminals=[terminals[11]]),
+        Door(x = 4350, y = 0, width=200, height=25, openX = -0, openY=75, requiredTerminals=[terminals[11], terminals[12]]),
+        Door(x= 5000, y = 150, width = 25, height = 200, openX = -175, openY = -0, requiredTerminals=[terminals[12]]),
+
+        Door(x=4550, y= -150, width=25, height=150, openX=-125, openY=-0, requiredTerminals=[terminals[12], terminals[13]]),
+        Door(x= 4975, y = 150, width = 25, height = 200, openX = -0, openY = -200, requiredTerminals=[terminals[12], terminals[13]]),
+
+        Door(x = 4975, y = 125, width=225, height=25, openX = -0, openY = 100, requiredTerminals=[terminals[13], terminals[14]]),
+        Door(x=4975, y = -725, width=50, height=125, openX= -0, openY=-125, requiredTerminals=[terminals[13], terminals[14]]),
+
+        Door(x=5300, y=-100, width=25, height=100, openX = -0, openY = -100, requiredTerminals=[terminals[15]]),
+        Door(x=5600, y=-100, width=25, height=100, openX = -0, openY = -100, requiredTerminals=[terminals[15]]),
+        Door(x=5900, y=-100, width=25, height=100, openX = -0, openY = -100, requiredTerminals=[terminals[15]]),
+        Door(x=5975, y=-100, width=50, height=100, openX = -0, openY = -100, requiredTerminals=[terminals[15]]),
+
+        Door(x=6975, y = -150, width=50, height=125, openX=-0, openY=-200, requiredTerminals=[terminals[16], terminals[17]]),
+
+        Door(x=7725, y = -750, width=175, height=25, openX=-200, openY=-200, requiredTerminals=[terminals[18], terminals[19]]),
+        Door(x=7600, y = -750, width=25, height=200, openX = -0, openY=-200, requiredTerminals=[terminals[18], terminals[19]]),
+
+        Door(x = 7000, y = -1500, width=1000, height=25, openX=1000, openY=0, requiredTerminals=[terminals[20]]),
+
+        Door(x=6000, y = -750, width=200, height=25, openX=400, openY=-150, requiredTerminals=[terminals[16], terminals[17], terminals[18], terminals[19], terminals[20]]),
+
+        Door(x = 6025, y = -1500, width=100, height=25, openX=100, openY=-0, requiredTerminals=[terminals[21]]),
+
 
     ]
 
@@ -490,6 +660,51 @@ def build_level(level):
         Enemy(3700, 1425, patrol_range=500, waypoints=WAYPOINTS),
         Enemy(3200, 2050, patrol_range=800, waypoints=WAYPOINTS),
         Enemy(3700, 2050, patrol_range=800, waypoints=WAYPOINTS),
+
+        Enemy(4125, 675, patrol_range=1000, waypoints=WAYPOINTS),
+        Enemy(4250, 675, patrol_range=1000, waypoints=WAYPOINTS),
+        Enemy(4375, 675, patrol_range=1000, waypoints=WAYPOINTS),
+        Enemy(4500, 675, patrol_range=1000, waypoints=WAYPOINTS),
+        Enemy(4625, 675, patrol_range=1000, waypoints=WAYPOINTS),
+        Enemy(4750, 675, patrol_range=1000, waypoints=WAYPOINTS),
+        Enemy(4875, 675, patrol_range=1000, waypoints=WAYPOINTS),
+
+        Enemy(4450, 200, patrol_range=100, waypoints=WAYPOINTS),
+
+        Enemy(4200, -210, patrol_range=1000, waypoints=WAYPOINTS),
+        Enemy(4650, -210, patrol_range=1000, waypoints=WAYPOINTS, facing = -1),
+        
+        Enemy(4300, -360, patrol_range=1000, waypoints=WAYPOINTS),
+        Enemy(4550, -360, patrol_range=1000, waypoints=WAYPOINTS, facing = -1 ),
+        
+        Enemy(4500, -510, patrol_range=1000, waypoints=WAYPOINTS),
+
+        Enemy(5350, 675, patrol_range=1000, waypoints=WAYPOINTS),
+        Enemy(5850, 675, patrol_range=1000, waypoints=WAYPOINTS, facing=-1),
+
+        Enemy(5400, 200, patrol_range=1000, waypoints=WAYPOINTS),
+        Enemy(5800, 200, patrol_range=1000, waypoints=WAYPOINTS, facing=-1),
+
+        Enemy(5200, -75, patrol_range=750, waypoints=WAYPOINTS),
+        Enemy(5500, -75, patrol_range=750, waypoints=WAYPOINTS),
+        Enemy(5700, -75, patrol_range=750, waypoints=WAYPOINTS),
+
+        Enemy(6200, -450, patrol_range=300, waypoints=WAYPOINTS),
+        Enemy(6800, -450, patrol_range=300, waypoints=WAYPOINTS, facing =-1),
+
+        Enemy(7400, -75, patrol_range=600, waypoints=WAYPOINTS),
+        Enemy(7600, -75, patrol_range=600, waypoints = WAYPOINTS),
+        Enemy(7800, -75, patrol_range=600, waypoints=WAYPOINTS, facing=-1),
+
+        Enemy(7100, -1550, patrol_range=1000, waypoints=WAYPOINTS),
+        Enemy(7200, -1550, patrol_range=1000, waypoints=WAYPOINTS),
+        Enemy(7300, -1550, patrol_range=1000, waypoints=WAYPOINTS),
+        Enemy(7400, -1550, patrol_range=1000, waypoints=WAYPOINTS),
+        Enemy(7500, -1550, patrol_range=1000, waypoints=WAYPOINTS),
+        Enemy(7600, -1550, patrol_range=1000, waypoints=WAYPOINTS),
+        Enemy(7700, -1550, patrol_range=1000, waypoints=WAYPOINTS),
+        Enemy(7800, -1550, patrol_range=1000, waypoints=WAYPOINTS),
+        Enemy(7900, -1550, patrol_range=1000, waypoints=WAYPOINTS),
     ]
 
     loreKeys = [
@@ -501,14 +716,19 @@ def build_level(level):
         LoreKey(1825, 1750, "ch2_1"),
         LoreKey(3050, 1600, "ch2_2"),
         LoreKey(3935, 675, "ch3_1"),
+        LoreKey(5700, -450, "ch3_2"),
+        LoreKey(6480, -1300, "ch3_3"),
+
         
     ]
 
     checkPoints = [
         Checkpoint(x = 100, y = 625, width = 100, height = 100),
-        Checkpoint(x = 2100, y = 25, width = 75, height = 700),
+        Checkpoint(x = 2000, y = 25, width = 50, height = 475),
         Checkpoint(x = 2300, y = 1250, width = 400, height = 50),
         Checkpoint(x = 3050, y = 25, width = 50, height = 125),
+        Checkpoint(x = 6100, y = -200, width=100, height=100),
+        Checkpoint(x = 6400, y = -875, width=200, height=100),
 
     ]
 
@@ -545,6 +765,7 @@ loreKeys = levelData["loreKeys"]
 checkPoints = levelData["checkPoints"]
 currRoom = 0
 
+
 player = Player(100, 675)
 
 def draw_text(text, font, color, center):
@@ -555,7 +776,7 @@ def draw_text(text, font, color, center):
 def save_game():
     slot = save_manager.get_slot(current_slot)
     terminalsData = [t.saveDict() for t in terminals]
-    enemiesData = [e.saveDict() for e in enemies]
+    enemiesData = [e.saveDict(checkPoints) for e in enemies]
 
     save_manager.write_slot(
         current_slot,
@@ -665,10 +886,12 @@ def check_lore_keys():
                 current_state = READING
 
 def checkCheckpoints():
+    global saveNotificationTimer
     for c in checkPoints:
         touching = player.rect.colliderect(c.rect)
         if touching and not c.playerEntry:
             save_game()
+            saveNotificationTimer = 2.0
         c.playerEntry = touching
 
 def apply_choice(choice):
@@ -820,6 +1043,12 @@ def draw_warden_dialogue():
 running = True
 while running:
     dt = clock.tick(FPS) / 1000.0 #convert delta time to seconds
+
+    if saveNotificationTimer > 0:
+        saveNotificationTimer -= dt
+        if saveNotificationTimer < 0:
+            saveNotificationTimer = 0
+
     mouse_pos = pygame.mouse.get_pos()
 
     for event in pygame.event.get():
@@ -920,7 +1149,6 @@ while running:
             if btn_journal.is_clicked(event):
                 current_state = JOURNAL
             if btn_main_menu.is_clicked(event):
-                save_game()
                 current_state = MENU
         elif current_state == JOURNAL:
             if btn_journal_back.is_clicked(event):
@@ -1094,6 +1322,26 @@ while running:
     elif current_state in (PLAYING, HACKING, PAUSED, GAME_OVER):
         screen.fill((30, 30, 60))
 
+        # if currRoom == 18 and not camera.isTrans:
+        #     roomText = small_font.render("WATCH OUT!", True, WHITE)
+        #     worldRect = pygame.Rect(7450, -1250, roomText.get_width(), roomText.get_height())
+        #     screenRect = camera.apply(worldRect)
+        #     screen.blit(roomText, screenRect.topleft)
+
+        if currRoom == 19 and not camera.isTrans:
+            lines = [
+                "I ran out of room ideas...",
+                "Here's a free room before the boss room",
+            ]
+            startX, startY = 6500, -1375
+            lineSpacing = 30
+
+            for i, line in enumerate(lines):
+                lineSurf = small_font.render(line, True, WHITE)
+                worldRect = lineSurf.get_rect(center=(startX, startY + i * lineSpacing))
+                screenRect = camera.apply(worldRect)
+                screen.blit(lineSurf, screenRect)
+
         for door in doors:
             door.draw(screen, camera)
 
@@ -1148,6 +1396,20 @@ while running:
             timerText = f"{mins:02d}:{secs:02d}.{milis:03d}"
             timerSurf = small_font.render(timerText, True, WHITE)
             screen.blit(timerSurf, (SCREEN_WIDTH - timerSurf.get_width() - 50, 25))
+
+            if saveNotificationTimer > 0:
+                alpha = min(255, int(255 * (saveNotificationTimer / 2.0) * 3)) #added fade transition for teh saved message for hceckpoints
+                saveSurf = small_font.render("SAVED", True, WHITE)
+                saveSurf.set_alpha(alpha)
+                saveRect = saveSurf.get_rect(center = (SCREEN_WIDTH // 2, 50))
+                screen.blit(saveSurf, saveRect)
+
+            if terminals[20].isHacked:
+                trollText = small_font.render("WATCH OUT!", True, WHITE)
+                worldRect = pygame.Rect(7450, -1250, trollText.get_width(), trollText.get_height())
+                screenRect = camera.apply(worldRect)
+                screen.blit(trollText, screenRect.topleft)
+        
 
         elif current_state == PAUSED:
             screen.fill((30, 30, 60))
