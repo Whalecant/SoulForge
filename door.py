@@ -13,6 +13,16 @@ class Door:
         self.delayTimer = 0.0
         self.requiredTerminals = requiredTerminals or []
 
+        self.forcedClose = False
+
+    def forceClose(self):
+        self.forcedClose = True
+        self.delayTimer = 0.0
+        self.targetPos = self.closedPos
+
+    def releaseForceClose(self):
+        self.forcedClose = False
+
     def syncToTerminalState(self):
         if self.allTerminalsHacked():
             self.delayTimer = self.openDelay
@@ -25,7 +35,10 @@ class Door:
         if isPause:
             return
 
-        if self.allTerminalsHacked():
+        if self.forcedClose:
+            self.delayTimer = 0.0
+            self.targetPos = self.closedPos
+        elif self.allTerminalsHacked():
             if self.delayTimer < self.openDelay:
                 self.delayTimer += dt
                 self.targetPos = self.closedPos

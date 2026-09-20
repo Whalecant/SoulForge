@@ -58,6 +58,13 @@ class SaveManager:
         slot["endings"] = endings
         self.save()
 
+    def isWardenIntroSeen(self, index):
+        return self.data["slots"][index].get("wardenIntroSeen", False)
+
+    def markWardenIntroSeen(self, index):
+        self.data["slots"][index]["wardenIntroSeen"] = True
+        self.save()
+
     def save(self):
         with open(self.filepath, "w") as f:
             json.dump(self.data, f, indent=2)
@@ -73,6 +80,7 @@ class SaveManager:
             "timer": timer,
             "journal": slot.get("journal", []),
             "endings": slot.get("endings", []),
+            "wardenIntroSeen": slot.get("wardenIntroSeen", False),
             "terminals": terminalsData if terminalsData is not None else [],
             "enemies": enemiesData if enemiesData is not None else [],
         }
@@ -100,6 +108,7 @@ class SaveManager:
             "timer": timer,
             "journal": journal if journal is not None else slot.get("journal", []),
             "endings": slot.get("endings", []),
+            "wardenIntroSeen": slot.get("wardenIntroSeen", False),
             "terminals": [],
             "enemies": [],
         }

@@ -10,6 +10,10 @@ FRICTION = 0.8
 MOVE_SPEED = 5
 SCREEN_WIDTH = 1000
 COYOTE_TIME_MAX = 5
+#the following things are because I have recereated titania from warframe essenitally, i thought i already added this failsafe... but nvm ig lol
+MAX_STEP = 10
+MAX_FALL_SPEED = 50
+MAX_FAST_FALL_SPEED = 200
 """
 for ur reference (宋理), coyote time is the time the player has to still input the jump button and for the game to recognize that input after the player has left the platform, it overall just lets the gameplay feel more fun
 https://www.youtube.com/watch?v=LBFNXBblf9c (for reference for u)
@@ -113,35 +117,18 @@ class Player:
                 self.vel_y += GRAVITY * self.fastFallForce
             else:
                 self.vel_y += GRAVITY
+
+            self.vel_y = min(self.vel_y, MAX_FAST_FALL_SPEED if self.isFastFall else MAX_FALL_SPEED)
         
         # keys = pygame.key.get_pressed()
         # moving = keys[pygame.K_LEFT] or keys[pygame.K_a] or keys[pygame.K_RIGHT] or keys[pygame.K_d]
         # if not moving:
         #     self.vel_x *= FRICTION
 
-        self.rect.x += self.vel_x
-        
-        for p in platforms:
-            if self.rect.colliderect(p):
-                if self.vel_x > 0:
-                    self.rect.right = p.left
-                elif self.vel_x < 0:
-                    self.rect.left = p.right
-                self.vel_x = 0
+        self.moveX(platforms)
 
-        self.rect.y += self.vel_y
-        wasOnGround = self.on_ground # added for coyote Time
-        self.on_ground = False
-
-        for p in platforms:
-            if self.rect.colliderect(p):
-                if self.vel_y > 0:
-                    self.rect.bottom = p.top
-                    self.vel_y = 0
-                    self.on_ground = True
-                elif self.vel_y < 0:
-                    self.rect.top = p.bottom
-                    self.vel_y = 0
+        wasOnGround = self.on_ground
+        self.moveY(platforms)
 
         if self.on_ground:
             self.isJump = False
@@ -159,6 +146,41 @@ class Player:
         else:
             if self.coyoteTimer > 0:
                 self.coyoteTimer -= 1
+
+    def moveX(self, platforms):
+        rem = self.vel_x
+        while rem != 0:
+            step = max(-MAX_STEP, min(MAX_STEP, rem))
+            rem -= step
+            self.rect.x += step
+
+            for p in platforms:
+                if self.rect.colliderect(p):
+                    if step > 0:
+                        self.rect.right = p.left
+                    else:
+                        self.rect.left = p.right
+                    return
+
+    def moveY(self, platforms):
+        rem = self.vel_y
+        self.on_ground = False
+        while rem != 0:
+            step = max(-MAX_STEP, min(MAX_STEP, rem))
+            rem -= step
+            self.rect.y += step
+
+            for p in platforms:
+                if self.rect.colliderect(p):
+                    if step > 0:
+                        self.rect.bottom = p.top
+                        self.on_ground = True
+                    else:
+                        self.rect.top = p.bottom
+
+                    self.vel_y = 0
+                    return
+                    
 
     
     def checkSurroundings(self, platforms, moveInput):
