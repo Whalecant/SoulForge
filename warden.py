@@ -54,6 +54,8 @@ class Warden:
         self.charsShown = 0.0
         self.charSpeed = 60
 
+        self.posedDown = False
+
         self.phase = 0
         self.dialogue_lines = [
             "So. The 73rd. You've come at last.",
@@ -72,7 +74,7 @@ class Warden:
 
         self.canSkip = False
         self.skipHold = 0.0
-        self.skipHoldTime = 2.0
+        self.skipHoldTime = 1.0
         self.skipFont = None
 
     def advanceDialogue(self):
@@ -85,7 +87,7 @@ class Warden:
         return False
 
     def tickDialogue(self, dt):
-        if not self.talking or self.defeated:
+        if not self.talking:
             return False
 
         currLine = self.dialogue_lines[self.dialogue_index] if 0 <= self.dialogue_index < len(self.dialogue_lines) else ""
@@ -99,7 +101,7 @@ class Warden:
         return False
 
     def tickSkip(self, dt, holding):
-        if not self.talking or self.defeated or not self.canSkip:
+        if not self.talking or not self.canSkip:
             self.skipHold = 0.0
             return False
 
@@ -397,26 +399,33 @@ class Warden:
         self.hitbox.topleft = self.rect.topleft
 
     def draw(self, surface, camera=None):
-        if self.defeated and self.phase == 0:
-            return
-
-        color = PURPLE if not self.defeated else (100, 60, 140)
+        color = PURPLE if not self.defeated else (70, 53, 87)
         drawRect = (camera.apply(self.rect) if camera else self.rect).copy()
-        drawRect.y += int(math.sin(self.hover) * 15) 
+
+        if not self.posedDown:
+            drawRect.y += int(math.sin(self.hover) * 15)
+
+        bodySurf = pygame.Surface((drawRect.width, drawRect.height), pygame.SRCALPHA)
+        bodyRect = bodySurf.get_rect()
 
         # Body
-        pygame.draw.rect(surface, color, drawRect, border_radius=6)
-        pygame.draw.rect(surface, WHITE, drawRect, 2, border_radius=6)
+        pygame.draw.rect(bodySurf, color, bodyRect, border_radius=6)
+        pygame.draw.rect(bodySurf, WHITE, bodyRect, 2, border_radius=6)
 
         # Eye
         eye_color = RED if (not self.talking and not self.defeated) else CYAN
-        eye_y = drawRect.y + 20
-        pygame.draw.circle(surface, WHITE, (drawRect.centerx - 10, eye_y), 5)
-        pygame.draw.circle(surface, WHITE, (drawRect.centerx + 10, eye_y), 5)
-        pygame.draw.circle(surface, eye_color, (drawRect.centerx - 10, eye_y), 3)
-        pygame.draw.circle(surface, eye_color, (drawRect.centerx + 10, eye_y), 3)
+        eye_y = bodyRect.y + 20
+        pygame.draw.circle(bodySurf, WHITE, (bodyRect.centerx - 10, eye_y), 5)
+        pygame.draw.circle(bodySurf, WHITE, (bodyRect.centerx + 10, eye_y), 5)
+        pygame.draw.circle(bodySurf, eye_color, (bodyRect.centerx - 10, eye_y), 3)
+        pygame.draw.circle(bodySurf, eye_color, (bodyRect.centerx + 10, eye_y), 3)
+
+        if self.posedDown:
+            bodySurf = pygame.transform.rotate(bodySurf, 90)
+
+        surface.blit(bodySurf, bodySurf.get_rect(center=drawRect.center))
 
         #for debugging
-        if camera and self.path:
+        if camera and self.path and not self.defeated:
             pts = [camera.apply(pygame.Rect(x, y, 0, 0)).topleft for x, y in self.path]
             pygame.draw.lines(surface, (255, 255, 0), False, [drawRect.center] + pts, 2)

@@ -1,12 +1,13 @@
 import pygame
 import copy
+import random
 from hackTerminal import Terminal #type: ignore
 from enemy import Enemy #type: ignore
 from door import Door #type: ignore
 from lore import LoreKey, JournalManager, NotificationManager, JOURNAL_CHAPTERS, wrap_text #type: ignore
 from warden import Warden #type: ignore
 from checkpointManager import Checkpoint #type: ignore
-#imma be honest, idk why the three things above are that bugged lol
+#imma be honest, idk why these things above are that bugged lol
 
 #change these values later
 WARDEN_ARENA_ROOMS = [20, 21, 22, 23]
@@ -62,6 +63,114 @@ PUZZLES = [ #add more accordingly
         "walls": [[1, 0], [5, 0], [1, 1], [4, 1], [4, 4], [0, 5], [2, 5], [1, 7], [3, 7], [4, 7]],
         "dummyCount": 5,
     },
+    #warden puzzles
+    {
+        "keyPos": [0, 7],
+        "exitPos": [5, 0],
+        "walls": [[1, 0], [3, 1], [2, 3], [5, 3], [4, 4], [1, 5], [0, 6], [4, 6]],
+        "dummies": [[3, 0], [5, 1], [1, 2], [2, 4], [3, 7]],
+    },
+    {
+        "keyPos": [0, 7],
+        "exitPos": [5, 0],
+        "walls": [[3, 0], [1, 1], [3, 2], [5, 2], [0, 3], [2, 3], [2, 5], [1, 6]],
+        "dummies": [[4, 0], [1, 3], [4, 4], [3, 5], [3, 7]],
+    },
+    {
+        "keyPos": [0, 7],
+        "exitPos": [5, 0],
+        "walls": [[4, 0], [2, 1], [0, 2], [4, 2], [2, 3], [4, 4], [1, 5], [1, 7], [3, 7]],
+        "dummies": [[2, 2], [4, 3], [5, 4], [2, 6], [4, 6]],
+    },
+    {
+        "keyPos": [0, 7],
+        "exitPos": [5, 0],
+        "walls": [[2, 0], [4, 0], [3, 2], [0, 3], [2, 3], [4, 4], [0, 5], [3, 5], [5, 6], [3, 7]],
+        "dummies": [[1, 1], [4, 1], [5, 3], [1, 6], [4, 6]],
+    },
+
+    {
+        "keyPos": [5, 0],
+        "exitPos": [0, 7],
+        "walls": [[3, 0], [5, 1], [1, 2], [1, 3], [5, 3], [0, 4], [4, 5], [3, 6], [1, 7]],
+        "dummies": [[3, 3], [0, 5], [2, 5], [2, 6], [4, 6]],
+    },
+    {
+        "keyPos": [5, 0],
+        "exitPos": [0, 7],
+        "walls": [[4, 1], [0, 2], [2, 2], [4, 3], [0, 4], [1, 4], [3, 4], [5, 5], [2, 6]],
+        "dummies": [[2, 0], [0, 1], [4, 5], [1, 6], [4, 7]],
+    },
+    {
+        "keyPos": [5, 0],
+        "exitPos": [0, 7],
+        "walls": [[1, 1], [2, 1], [3, 1], [3, 3], [5, 3], [2, 4], [5, 4], [1, 5], [5, 5]],
+        "dummies": [[1, 0], [3, 0], [4, 3], [4, 6], [1, 7]],
+    },
+    {
+        "keyPos": [5, 0],
+        "exitPos": [0, 7],
+        "walls": [[0, 2], [2, 2], [3, 3], [5, 3], [0, 4], [1, 5], [3, 5], [4, 6], [2, 7]],
+        "dummies": [[3, 0], [5, 1], [3, 2], [1, 4], [0, 5]],
+    },
+
+    {
+        "keyPos": [5, 0],
+        "exitPos": [5, 7],
+        "walls": [[3, 0], [3, 1], [3, 2], [5, 3], [4, 4], [1, 5], [4, 6], [2, 7]],
+        "dummies": [[1, 0], [1, 1], [5, 1], [2, 4], [0, 7]],
+    },
+    {
+        "keyPos": [5, 0],
+        "exitPos": [5, 7],
+        "walls": [[4, 0], [1, 1], [3, 2], [5, 2], [0, 3], [2, 3], [2, 5], [5, 5], [2, 6]],
+        "dummies": [[2, 1], [1, 3], [4, 4], [3, 6], [0, 7]],
+    },
+    {
+        "keyPos": [5, 0],
+        "exitPos": [5, 7],
+        "walls": [[1, 0], [4, 0], [2, 1], [0, 2], [2, 3], [4, 4], [1, 5], [1, 6], [1, 7]],
+        "dummies": [[2, 2], [4, 2], [4, 3], [5, 4], [4, 6], [0, 7]],
+    },
+    {
+        "keyPos": [5, 0],
+        "exitPos": [5, 7],
+        "walls": [[2, 0], [4, 0], [3, 2], [0, 3], [2, 3], [4, 4], [0, 5], [3, 5], [3, 7]],
+        "dummies": [[1, 1], [4, 1], [5, 3], [2, 5], [0, 7]],
+    },
+
+    {
+        "keyPos": [5, 7],
+        "exitPos": [5, 0],
+        "walls": [[3, 0], [3, 1], [1, 2], [1, 3], [5, 3], [4, 5], [3, 6], [0, 7], [1, 7]],
+        "dummies": [[1, 1], [3, 3], [4, 3], [0, 5], [2, 5]],
+    },
+    {
+        "keyPos": [5, 7],
+        "exitPos": [5, 0],
+        "walls": [[4, 1], [0, 2], [2, 2], [4, 3], [0, 4], [1, 4], [3, 4], [2, 6], [3, 6]],
+        "dummies": [[2, 0], [0, 1], [5, 3], [4, 5], [5, 5]],
+    },
+    {
+        "keyPos": [5, 7],
+        "exitPos": [5, 0],
+        "walls": [[3, 1], [4, 1], [3, 3], [5, 3], [1, 4], [5, 4], [1, 5], [0, 6], [4, 6]],
+        "dummies": [[1, 0], [1, 1], [4, 2], [3, 4], [3, 6]],
+    },
+    {
+        "keyPos": [5, 7],
+        "exitPos": [5, 0],
+        "walls": [[0, 2], [2, 2], [3, 2], [3, 3], [0, 4], [3, 5], [5, 5], [1, 6], [3, 7]],
+        "dummies": [[3, 0], [3, 1], [3, 5], [3, 2], [2, 5]],
+    },
+
+    #ending terminals thing
+    {
+        "keyPos": [1, 1],
+        "exitPos": [5, 7],
+        "walls": [],
+        "dummies": [],
+    }
 
 
 ]
@@ -175,9 +284,9 @@ def build_level(level):
         pygame.Rect(6000, -1500, 1000, 750), #room 19
         pygame.Rect(6000, -2250, 1000, 750), #room 20 (warden room 1)
         pygame.Rect(5000, -2250, 1000, 750), #room 21 (warden room 2)
-        pygame.Rect(6000, -3000, 1000, 750), #room 22 (warden room 3)
-        pygame.Rect(5000, -3000, 1000, 750), #room 23 (warden room 4)
-        pygame.Rect(7000, -3000, 1000, 750), #room 24 (ending room) 
+        pygame.Rect(5000, -3000, 1000, 750), #room 22 (warden room 3)
+        pygame.Rect(6000, -3000, 1000, 750), #room 23 (warden room 4)
+        pygame.Rect(7000, -3750, 1000, 750), #room 24 (ending room) 
 
         #build rooms off of this :thumbsUp:
     ]
@@ -453,29 +562,58 @@ def build_level(level):
         pygame.Rect(6125, -1500, 900, 25),
         pygame.Rect(6480, -1250, 40, 250),
 
-        #warden room 1 (6000 - 7000, -2250 - -1500)
-        pygame.Rect(6000, -2250, 25, 600),
-        pygame.Rect(6000, -2250, 800, 25),
-        pygame.Rect(6975, -2250, 25, 750),
+        #room 20 (6000 - 7000, -2250 - -1500) [warden room 1]
+        pygame.Rect(6000, -2250, 25, 600), 
+        pygame.Rect(6000, -2250, 800, 25), 
+        pygame.Rect(6975, -2250, 25, 750), 
         pygame.Rect(6100, -1525, 900, 25),
+        pygame.Rect(6700, -1800, 150, 25),
+        pygame.Rect(6850, -2050, 150, 25),
+        pygame.Rect(6150, -2100, 150, 25),
+        pygame.Rect(6450, -1950, 150, 25),
+        pygame.Rect(6700, -2250, 25, 300),
+        pygame.Rect(6800, -1625, 25, 125),
 
-        #warden room 2 (6000 - 7000, -3000 -2250)
-        pygame.Rect(6000, -2275, 800, 25),
-        pygame.Rect(6975, -3000, 50, 750),
-        pygame.Rect(6000, -3000, 1000, 25),
-        pygame.Rect(6000, -2850, 25, 600),
+        #room 21 (5000 - 6000, -2250 - -1500) [warden room 2]
+        pygame.Rect(5000, -2250, 25, 750), 
+        pygame.Rect(5000, -1525, 1000, 25), 
+        pygame.Rect(5975, -2250, 25, 600),
+        pygame.Rect(5700, -1650, 150, 25),
+        pygame.Rect(5200, -1750, 25, 250),
+        pygame.Rect(5500, -1800, 150, 25),
+        pygame.Rect(5700, -2050, 150, 25),
+        pygame.Rect(5150, -2100, 150, 25),
+        pygame.Rect(5350, -1950, 200, 25),
 
-        #warden room 3 (5000 - 6000, -3000 - -2250)
-        pygame.Rect(5000, -3000, 1000, 25),
-        pygame.Rect(5000, -3000, 25, 750),
+        #warden room 3 (5000 - 6000, -3000 - -2250) [warden room 3]
+        pygame.Rect(5000, -3000, 1000, 25), 
+        pygame.Rect(5000, -3000, 25, 750), 
         pygame.Rect(5975, -2850, 25, 600),
         pygame.Rect(5200, -2275, 800, 50),
+        pygame.Rect(5500, -2550, 100, 300),
+        pygame.Rect(5500, -3000, 100, 250),
+        pygame.Rect(5700, -2500, 150, 25),
+        pygame.Rect(5200, -2700, 150, 25),
+        pygame.Rect(5850, -2650, 150, 25),
+                        
+        #warden room 4 (6000 - 7000, -3000 - -2250) [warden room 4]
+        pygame.Rect(6000, -2275, 800, 25), 
+        pygame.Rect(6975, -3000, 50, 750), 
+        pygame.Rect(6000, -3000, 1000, 25),
+        pygame.Rect(6000, -2850, 25, 600),
+        pygame.Rect(6150, -2600, 150, 25),
+        pygame.Rect(6450, -2500, 100, 150),
+        pygame.Rect(6550, -3000, 50, 400),
+        pygame.Rect(6700, -2450, 150, 25),
+        pygame.Rect(6775, -2750, 125, 25),
+        pygame.Rect(6075, -2400, 150, 25),
 
-        #warden room 4 (5000 - 6000, -2250 - -1500)
-        pygame.Rect(5000, -2250, 25, 750),
-        pygame.Rect(5000, -1525, 1000, 25),
-        pygame.Rect(5975, -2250, 25, 600),
-]
+        #ending room (7000 - 8000, -3750 - -3000)
+        pygame.Rect(7000, -3750, 25, 750),
+        pygame.Rect(7000, -3025, 1000, 25),
+        pygame.Rect(7000, -3750, 1000, 25),
+        pygame.Rect(7975, -3750, 25, 750),
+    ]
 
     terminals = [
         Terminal(x = 250, y = 500, **copy.deepcopy(PUZZLES[0]) ,timeLimit = 20.0, room="general"),
@@ -505,6 +643,9 @@ def build_level(level):
 
         Terminal(x = 6480, y = -950, **copy.deepcopy(PUZZLES[5]), timeLimit=20.0, room="general"),
         # for the warden fight, do room="warden" instead
+
+        Terminal(x = 7150, y = -3075, **copy.deepcopy(PUZZLES[26]), timeLimit=99999.0, room="endingChoiceWarden"),
+        Terminal(x = 7800, y = -3075, **copy.deepcopy(PUZZLES[26]), timeLimit=99999.0, room="endingChoiceBreak"),
     ]
 
     doors = [
@@ -645,11 +786,32 @@ def build_level(level):
         warden = Warden(warden_x, warden_y)
 
         loreKeys.extend([
-            LoreKey(arenaStartRoom.left + 180, arenaStartRoom.top + 650, "ch4_1"),
-            LoreKey(arenaStartRoom.left + 800, arenaStartRoom.top + 650, "ch4_2"),
-            LoreKey(arenaStartRoom.left + 360, arenaStartRoom.top + 450, "ch5_1"),
-            LoreKey(arenaStartRoom.left + 640, arenaStartRoom.top + 450, "ch5_2")
+            LoreKey(rooms[WARDEN_ARENA_ROOMS[0]].left + 925, rooms[WARDEN_ARENA_ROOMS[0]].top + 675, "ch4_1"),
+            LoreKey(rooms[WARDEN_ARENA_ROOMS[1]].left + 50, rooms[WARDEN_ARENA_ROOMS[1]].top + 675, "ch4_2"),
+            LoreKey(rooms[WARDEN_ARENA_ROOMS[2]].left + 915, rooms[WARDEN_ARENA_ROOMS[2]].top + 675, "ch5_1"),
+            LoreKey(rooms[WARDEN_ARENA_ROOMS[3]].left + 50, rooms[WARDEN_ARENA_ROOMS[3]].top + 675, "ch5_2"),
         ])
+
+        wardenTerminalPositions = [
+            #fill these in yourself - (x, y) only, no puzzle kwargs here
+            (6200, -2150),  #room 1
+            (6900, -2100),  #room 1
+            (5200, -2150),  #room 2
+            (5750, -2100),  #room 2
+            (5275, -2750),  #room 3
+            (5875, -2700),  #room 3
+            (6825, -2800),  #room 4
+            (6125, -2450),  #room 4
+        ]
+
+        wardenPuzzlePool = PUZZLES[10:26]
+
+        wardenPuzzles = random.sample(wardenPuzzlePool, len(wardenTerminalPositions))
+        terminals.extend(
+            Terminal(x=x, y=y, **copy.deepcopy(puzzle), timeLimit=15.0, room="warden")
+            for (x, y), puzzle in zip(wardenTerminalPositions, wardenPuzzles)
+        )
+
 
     return {
         "rooms": rooms,

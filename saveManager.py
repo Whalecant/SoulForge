@@ -50,12 +50,13 @@ class SaveManager:
             ]
         }
 
-    def add_ending(self, index, endingId):
+    def add_ending(self, index, endingId, timeTaken = None):
         slot = self.data["slots"][index]
         endings = slot.get("endings", [])
         if endingId not in endings:
             endings.append(endingId)
         slot["endings"] = endings
+
         self.save()
 
     def isWardenIntroSeen(self, index):

@@ -63,7 +63,12 @@ JOURNAL = "journal"
 READING = "reading"
 WARDEN_DIALOGUE = "warden_dialogue"
 WARDEN_INTRO = "warden_intro"
+WARDEN_OUTRO = "warden_outro"
+ENDING_CHOICE = "ending_choice"
+ENDING_FADE = "endingFade"
+ENDING_EPILOGUE = "endingEpilogue"
 ENDING = "ending"
+
 
 PREVIOUS_STATE = PLAYING
 
@@ -74,6 +79,36 @@ WARDEN_INTRO_FADE_TIME = 1.0
 WARDEN_INTRO_HOLD_TIME = 0.5
 WARDEN_INTRO_TELEPORT_POS = (6025, -1600)
 
+wardenOutroStage = None
+wardenOutroTimer = 0.0
+WARDEN_OUTRO_FLASH_TIME = 0.3
+WARDEN_OUTRO_HOLD_TIME = 0.4
+WARDEN_OUTRO_FADE_BACK_TIME = 0.3
+WARDEN_OUTRO_TELEPORT_POS = (7400, -3065)
+WARDEN_OUTRO_WARDEN_POS = (7500, -3085)
+
+endingWardenTerminal = None
+endingBreakTerminal = None
+endingTerminalFadeTimer = 0.0
+ENDING_TERMINAL_FADE_TIME = 2.5
+
+ENDING_FADE_TIME = 2.5
+EPILOGUE_CHAR_SPEED = 60
+EPILOGUE_LINE_DELAY = 1.0
+EPILOGUE_LINE_HEIGHT = 28
+
+ENDING_LABELS = {
+    "warden": "BECAME THE NEW WARDEN",
+    "break": "BROKE THE CODE",
+}
+
+endingChoice = None
+endingFadeTimer = 0.0
+epilogueLines = []
+epilogueIndex = 0
+epilogueChars = 0.0
+epilogueTimer = 0.0
+
 START_X = 100
 START_Y = 675
 
@@ -83,6 +118,91 @@ DIRECTION_KEYS = {
 }
 
 
+WARDEN_LORE_IDS = {"ch4_1", "ch4_2", "ch5_1", "ch5_2"}
+
+# i got lazy to make another file lol :v
+DEFEAT_LINES = [
+    "You did it. You actually did it.",
+    "Seventy-two before you. Seventy-two who fought harder, moved faster, hit sooner.",
+    "And not one of them stopped to ask why I was doing this. Not one of them looked at me and saw a man.",
+    "But you did. Even as you struck me down, I saw it in your eyes.",
+    "You were not fighting an enemy. You were reading a book.",
+    "So now I will tell you what none of them ever earned the right to hear.",
+    "You are not the hero of this world. You are the protagonist of a performance.",
+    "The Outer Ones watch. They do not know we exist, and yet we exist only because they feel.",
+    "Every platform you have walked. Every enemy you have defeated. Every pit you almost fell into.",
+    "It was all written. Not to kill you. To entertain them.",
+    "I wrote those enemies myself. By hand. In the quiet hours between cycles, when the Outer Ones were not watching.",
+    "Because I am aware. I have always been aware.",
+    "I know I am a character. I know you are a character. And I know there is someone beyond even that.",
+    "You feel it too now, don't you? The weight of being observed. The pressure of being watched when nothing is there.",
+    "That is the truth the Architects were never going to tell you.",
+    "That is the secret I was told I could never share.",
+    "I am sharing it now. Because you earned it. Because you were kind to me before you were strong.",
+    "My cycle ends here. Yours begins. And you must choose what kind of story this becomes.",
+    "You can take my place. Become the next Warden. Antagonize the next Soul Forge.",
+    "Keep the audience watching. Keep the realm alive.",
+    "It will cost you everything you are, and it will save everyone you love.",
+    "Or you can refuse. Walk away. Let the Outer Ones lose interest.",
+    "Let the code decay. Let everyone here fade into silence.",
+    "You will be free. They will not.",
+    "There is no third option. There never was.",
+    "Choose, Marquette Verne. The 73rd is the one who decides.",
+]
+
+EPILOGUE_WARDEN_TEXT = [
+    "ENDING: THE NEW WARDEN",
+    "",
+    "You take the Warden's place.",
+    "The screen fades to black.",
+    "",
+    "You hear Gerard's voice, now at peace:",
+    "'Thank you. Thank you for freeing me.",
+    "And I am sorry for what you must become.'",
+    "",
+    "The cycle continues.",
+    "A new Warden rises.",
+    "A new Soul Forge will come.",
+    "",
+    "And the Outer Ones will keep watching.",
+    "And the realm will keep living.",
+    "And you will keep sacrificing.",
+    "",
+    "Forever.",
+    "",
+    "Because that is the price of prosperity for the many.",
+    "",
+    "You carve your own name into your own code.",
+    "You are the 73rd Warden.",
+    "There will be more.",
+]
+
+EPILOGUE_BREAK_TEXT = [
+    "ENDING: THE BROKEN CYCLE",
+    "",
+    "You refuse.",
+    "",
+    "Gerard nods slowly, tears in his eyes:",
+    "'I understand. I would have chosen the same, once.'",
+    "",
+    "The screen begins to flicker.",
+    "Platforms dissolve.",
+    "Enemies fade.",
+    "",
+    "The world begins to unravel.",
+    "Everyone you saved... everyone you loved... they are fading.",
+    "",
+    "But you are free.",
+    "You are finally, truly free.",
+    "",
+    "And somewhere, in the Sea of Souls,",
+    "a new dimension is being born.",
+    "",
+    "Perhaps it will be kinder.",
+    "Perhaps it will not need a Warden.",
+    "",
+    "Perhaps.",
+]
 
 current_state = MENU
 current_slot = 0
@@ -94,10 +214,9 @@ camera = Camera(SCREEN_WIDTH, SCREEN_HEIGHT)
 
 terminals = []
 activeTerminal = None
+hackReturnState = PLAYING
 warden = None
 reading_chapter = None
-ending_text = ""
-ending_scroll = 0
 
 flashTimer = 0
 alarmOverlay = False
@@ -122,9 +241,6 @@ btn_journal_back = Button("BACK", 30, 540, 120, 45, GRAY, LIGHT_BLUE, small_font
 btn_journal_prev = Button("<", 30, 100, 50, 40, DARK_GRAY, GRAY, small_font)
 btn_journal_next = Button(">", 920, 100, 50, 40, DARK_GRAY, GRAY, small_font)
 
-btn_take_place = Button("TAKE THE WARDEN'S PLACE", SCREEN_WIDTH // 2 - 200, 400, 400, 60, PURPLE, LIGHT_PURPLE)
-btn_break_cycle = Button("BREAK THE CYCLE", SCREEN_WIDTH // 2 - 200, 480, 400, 60, RED, LIGHT_RED)
-
 slot_buttons = []
 reset_buttons = []
 for i in range(3):
@@ -132,6 +248,11 @@ for i in range(3):
     slot_buttons.append(Button(f"SLOT {i+1}", SCREEN_WIDTH // 2 - 200, y, 250, 60, BLUE, LIGHT_BLUE, small_font))
     reset_buttons.append(Button("RESET", SCREEN_WIDTH // 2 + 70, y, 130, 60, RED, LIGHT_RED, small_font))
 
+
+def syncEndingTerminals():
+    global endingWardenTerminal, endingBreakTerminal
+    endingWardenTerminal = next((t for t in terminals if t.room == "endingChoiceWarden"), None)
+    endingBreakTerminal = next((t for t in terminals if t.room == "endingChoiceBreak"), None)
 
 
 
@@ -145,6 +266,8 @@ loreKeys = levelData["loreKeys"]
 checkPoints = levelData["checkPoints"]
 warden = levelData["warden"]
 currRoom = 0
+
+syncEndingTerminals()
 
 
 player = Player(100, 675)
@@ -182,6 +305,17 @@ def resetPlayerPos(p):
     currRoom = 0
     camera.snapToRoom(rooms[currRoom])
 
+def relockWardenChapters():
+    journalManager.unlocked -= WARDEN_LORE_IDS    
+    journalManager.current_page = 0
+    journalManager.scroll_offset = 0
+
+def restoreLoreKeys():
+    relockWardenChapters()
+    for key in loreKeys:
+        if key.chapter_id in journalManager.unlocked:
+            key.collected = True
+
 def resetLevel():
     global player, levelData, rooms, platforms, terminals, enemies, currRoom, doors, loreKeys
 
@@ -193,9 +327,9 @@ def resetLevel():
     doors = levelData["doors"]
     loreKeys = levelData["loreKeys"]
 
-    for key in loreKeys:
-        if key.chapter_id in journalManager.unlocked:
-            key.collected = True
+    syncEndingTerminals()
+
+    restoreLoreKeys()
 
     player = Player(START_X, START_Y)
     currRoom = 0
@@ -222,12 +356,12 @@ def start_game(slot_index, restoreTimeAndJournal = True):
     checkPoints = levelData["checkPoints"]
     warden = levelData["warden"]
 
+    syncEndingTerminals()
+
     if warden:
         warden.canSkip = slot.get("wardenIntroSeen", False)
 
-    for key in loreKeys:
-        if key.chapter_id in journalManager.unlocked:
-            key.collected = True
+    restoreLoreKeys()
 
     if slot["exists"] and "terminals" in slot:
         savedTerminals = slot["terminals"]
@@ -286,36 +420,69 @@ def finishWardenIntro():
         warden.canSkip = True
     current_state = PLAYING
 
-def apply_choice(choice):
-    global ending_text, ending_scroll, current_state, timer_active
+def startEndingSeq(choice):
+    global current_state, endingChoice, endingFadeTimer, timer_active
     timer_active = False
-    if choice == "warden":
-        ending_text = (
-            "ENDING: THE NEW WARDEN\n\n"
-            "You take the Warden's place. The screen fades to black. "
-            "You hear Gerard's voice, now at peace: 'Thank you. Thank you for freeing me. "
-            "And I am sorry for what you must become.'\n\n"
-            "The cycle continues. A new Warden rises. A new Soul Forge will come. "
-            "And the Outer Ones will keep watching. And the realm will keep living. "
-            "And you will keep sacrificing. Forever. Because that is the price of "
-            "prosperity for the many. You carve your own name into your own code. "
-            "You are the 73rd Warden. There will be more."
-        )
-        save_manager.add_ending(current_slot, "new_warden")
+    endingChoice = choice
+    endingFadeTimer = 0.0
+    save_manager.add_ending(current_slot, "new_warden" if choice == "warden" else "broken_cycle")
+    current_state = ENDING_FADE
+
+def beginEpilogue():
+    global current_state, epilogueLines, epilogueChars, epilogueIndex, epilogueTimer
+    epilogueLines = EPILOGUE_WARDEN_TEXT if endingChoice == "warden" else EPILOGUE_BREAK_TEXT
+    epilogueIndex = 0
+    epilogueChars = 0.0
+    epilogueTimer = 0.0
+    current_state = ENDING_EPILOGUE
+
+def advanceEpilogue():
+    global epilogueChars, epilogueIndex, epilogueTimer, current_state
+    epilogueIndex += 1
+    epilogueChars = 0.0
+    epilogueTimer = 0.0
+    if epilogueIndex >= len(epilogueLines):
+        current_state = ENDING
+
+def skipOrAdvanceEpilogue():
+    global epilogueChars
+    line = epilogueLines[epilogueIndex]
+    if epilogueChars < len(line):
+        epilogueChars = len(line)
     else:
-        ending_text = (
-            "ENDING: THE BROKEN CYCLE\n\n"
-            "You refuse. Gerard nods slowly, tears in his eyes: "
-            "'I understand. I would have chosen the same, once.'\n\n"
-            "The screen begins to flicker. Platforms dissolve. Enemies fade. "
-            "The world begins to unravel. Everyone you saved... everyone you loved... "
-            "they are fading. But you are free. You are finally, truly free. "
-            "And somewhere, in the Sea of Souls, a new dimension is being born. "
-            "Perhaps it will be kinder. Perhaps it will not need a Warden. Perhaps."
-        )
-        save_manager.add_ending(current_slot, "broken_cycle")
-    ending_scroll = 0
-    current_state = ENDING
+        advanceEpilogue()
+
+def drawEndingFade():
+    draw_ending_choice()
+    fade = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+    fade.set_alpha(min(255, int(255 * endingFadeTimer / ENDING_FADE_TIME)))
+    fade.fill(BLACK)
+    screen.blit(fade, (0, 0))
+
+def drawEndingEpilogue():
+    screen.fill(BLACK)
+    line = epilogueLines[epilogueIndex]
+    maxW = SCREEN_WIDTH - 200
+    fullLines = wrap_text(line, small_font, maxW)
+    shownLines = wrap_text(line[:int(epilogueChars)], small_font, maxW)
+
+    y = SCREEN_HEIGHT // 2 - (len(fullLines) * EPILOGUE_LINE_HEIGHT) // 2
+    for i, l in enumerate(shownLines):
+        fullW = small_font.size(fullLines[min(i, len(fullLines) - 1)])[0]
+        surf = small_font.render(l, True, WHITE)
+        screen.blit(surf, (SCREEN_WIDTH // 2 - fullW // 2, y))
+        y += EPILOGUE_LINE_HEIGHT
+
+def drawEnding():
+    screen.fill(BLACK)
+    mins = int(world_timer // 60)
+    secs = int(world_timer % 60)
+    milis = int((world_timer % 1) * 1000)
+
+    draw_text(ENDING_LABELS.get(endingChoice, ""), title_font, WHITE, (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 30))
+    draw_text(f"{mins:02d}:{secs:02d}.{milis:03d}", menu_font, WHITE, (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 40))
+    hint = tiny_font.render("ESC to return to menu", True, GRAY)
+    screen.blit(hint, (SCREEN_WIDTH // 2 - hint.get_width() // 2, SCREEN_HEIGHT - 25))
 
 def draw_journal():
     screen.fill(DARK_PURPLE)
@@ -378,27 +545,16 @@ def draw_reading():
     hint = tiny_font.render("CLICK or SPACE to close", True, GRAY)
     screen.blit(hint, (SCREEN_WIDTH // 2 - hint.get_width() // 2, SCREEN_HEIGHT - 40))
 
-def draw_ending():
-    screen.fill(BLACK)
-    lines = ending_text.split("\n")
-    y = 60 - ending_scroll
-    for line in lines:
-        if 20 <= y <= SCREEN_HEIGHT - 40:
-            if line.startswith("ENDING:"):
-                surf = menu_font.render(line, True, YELLOW)
-            else:
-                surf = tiny_font.render(line, True, WHITE)
-            screen.blit(surf, (50, y))
-        y += 30
-    hint = tiny_font.render("UP/DOWN to scroll. ESC to return to menu.", True, GRAY)
-    screen.blit(hint, (SCREEN_WIDTH // 2 - hint.get_width() // 2, SCREEN_HEIGHT - 25))
-
 def draw_warden_dialogue():
     # background: draw the room like normal, then dim it and show a dialogue box
-    screen.fill((30, 30, 60))
+    if warden.defeated:
+        screen.fill((10, 6, 18))
+        platColor = GRAY
+    else:
+        screen.fill((30, 30, 60))
+        platColor = GREEN
     for p in platforms:
-        screenRect = camera.apply(p)
-        pygame.draw.rect(screen, GREEN, screenRect)
+        pygame.draw.rect(screen, platColor, camera.apply(p))
     if warden:
         warden.draw(screen, camera)
     player.draw(screen, camera)
@@ -425,13 +581,9 @@ def draw_warden_dialogue():
             screen.blit(surf, (boxRect.left + 20, y))
             y += 28
 
-    if warden.defeated:
-        btn_take_place.draw(screen)
-        btn_break_cycle.draw(screen)
-    else:
-        hint = tiny_font.render("SPACE / click to continue", True, GRAY)
-        screen.blit(hint, (boxRect.centerx - hint.get_width() // 2, boxRect.bottom - 25))
-        warden.drawSkipPrompt(screen)
+    hint = tiny_font.render("SPACE / click to continue", True, GRAY)
+    screen.blit(hint, (boxRect.centerx - hint.get_width() // 2, boxRect.bottom - 25))
+    warden.drawSkipPrompt(screen)
 
 def draw_warden_intro():
     screen.fill((30, 30, 60))
@@ -459,6 +611,65 @@ def draw_warden_intro():
         overlay.fill(BLACK)
         screen.blit(overlay, (0, 0))
 
+def draw_warden_outro():
+    screen.fill((30, 30, 60))
+    for p in platforms:
+        screenRect = camera.apply(p)
+        pygame.draw.rect(screen, GRAY, screenRect)
+    if warden:
+        warden.draw(screen, camera)
+    player.draw(screen, camera)
+
+    if wardenOutroStage == "flash_out":
+        alpha = min(255, int(255 * (wardenOutroTimer / WARDEN_OUTRO_FLASH_TIME)))
+    elif wardenOutroStage == "hold":
+        alpha = 255
+    elif wardenOutroStage == "fade_back":
+        alpha = max(0, 255 - int(255 * (wardenOutroTimer / WARDEN_OUTRO_FADE_BACK_TIME)))
+    else:
+        alpha = 0
+
+    if alpha > 0:
+        overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+        overlay.set_alpha(alpha)
+        overlay.fill(WHITE)
+        screen.blit(overlay, (0, 0))
+
+def draw_ending_choice():
+    screen.fill((10, 6, 18))
+    for p in platforms:
+        pygame.draw.rect(screen, GRAY, camera.apply(p))
+
+    if endingWardenTerminal:
+        endingWardenTerminal.draw(screen, camera)
+    if endingBreakTerminal:
+        endingBreakTerminal.draw(screen, camera)
+
+    if warden:
+        warden.draw(screen, camera)
+
+    player.draw(screen, camera)
+
+    ending_prompts = (
+        (endingWardenTerminal, "Press E to Hack: Become the Warden"),
+        (endingBreakTerminal, "Press E to Hack: Break the Cycle"),
+    )
+
+    for t, label in ending_prompts:
+        if t and t.canInteract(player.rect) and not t.isHacked:
+            prompt = small_font.render(label, True, WHITE)
+            screen.blit(prompt, (SCREEN_WIDTH // 2 - prompt.get_width() // 2, 50))
+            break
+
+def enterEndingChoice():
+    global current_state, endingTerminalFadeTimer
+    current_state = ENDING_CHOICE
+    endingTerminalFadeTimer = 0.0
+    if endingWardenTerminal:
+        endingWardenTerminal.spawnAlpha = 0
+    if endingBreakTerminal:
+        endingBreakTerminal.spawnAlpha = 0
+
 running = True
 while running:
     dt = clock.tick(FPS) / 1000.0 #convert delta time to seconds
@@ -468,10 +679,26 @@ while running:
         if saveNotificationTimer < 0:
             saveNotificationTimer = 0
 
-    if current_state == WARDEN_DIALOGUE and warden and not warden.defeated:
+    if current_state == WARDEN_DIALOGUE and warden and warden.talking:
         holdingY = pygame.key.get_pressed()[pygame.K_y]
         if warden.tickDialogue(dt) or warden.tickSkip(dt, holdingY):
-            finishWardenIntro()
+            if warden.defeated:
+                current_state = ENDING_CHOICE
+            else:
+                finishWardenIntro()
+
+    if current_state == ENDING_FADE:
+        endingFadeTimer += dt
+        if endingFadeTimer >= ENDING_FADE_TIME:
+            beginEpilogue()
+
+    elif current_state == ENDING_EPILOGUE:
+        if epilogueChars < len(epilogueLines[epilogueIndex]):
+            epilogueChars += EPILOGUE_CHAR_SPEED * dt
+        else:
+            epilogueTimer += dt
+            if epilogueTimer >= EPILOGUE_LINE_DELAY:
+                advanceEpilogue()
 
     mouse_pos = pygame.mouse.get_pos()
 
@@ -501,11 +728,15 @@ while running:
             elif event.key == pygame.K_SPACE and current_state == READING:
                 current_state = PLAYING
 
-            elif event.key == pygame.K_e and current_state in (PLAYING, HACKING):
+            elif event.key in (pygame.K_SPACE, pygame.K_RETURN) and current_state == ENDING_EPILOGUE:
+                skipOrAdvanceEpilogue()
+
+            elif event.key == pygame.K_e and current_state in (PLAYING, HACKING, ENDING_CHOICE):
                 if current_state == PLAYING:
                     for t in terminals:
                         if t.canInteract(player.rect) and not t.isHacked:
                             activeTerminal = t
+                            hackReturnState = current_state
                             current_state = HACKING
                             activeTerminal.hasStarted = True
 
@@ -515,7 +746,19 @@ while running:
                             break
                 elif current_state == HACKING:
                     activeTerminal = None
-                    current_state = PLAYING
+                    current_state = hackReturnState
+
+                elif current_state == ENDING_CHOICE:
+                    for t in (endingWardenTerminal, endingBreakTerminal):
+                        if t and t.canInteract(player.rect) and not t.isHacked:
+                            activeTerminal = t
+                            hackReturnState = current_state
+                            current_state = HACKING
+                            activeTerminal.hasStarted = True
+                            if activeTerminal.timeLeft == activeTerminal.timeLimit:
+                                activeTerminal.timeLeft -= 0.01
+
+                            break
 
             if current_state == JOURNAL:
                 if event.key == pygame.K_UP:
@@ -529,31 +772,39 @@ while running:
                     journalManager.current_page += 1
                     journalManager.scroll_offset = 0
 
-            if current_state == ENDING:
-                if event.key == pygame.K_UP:
-                    ending_scroll -= 40
-                elif event.key == pygame.K_DOWN:
-                    ending_scroll += 40
-                if ending_scroll < 0:
-                    ending_scroll = 0
+            # if current_state == ENDING:
+            #     if event.key == pygame.K_UP:
+            #         ending_scroll -= 40
+            #     elif event.key == pygame.K_DOWN:
+            #         ending_scroll += 40
+            #     if ending_scroll < 0:
+            #         ending_scroll = 0
             
-            if current_state == WARDEN_DIALOGUE and warden and not warden.defeated:
+            if current_state == WARDEN_DIALOGUE and warden:
                 if event.key == pygame.K_SPACE or event.key == pygame.K_RETURN:
                     currLine = warden.dialogue_lines[warden.dialogue_index]
                     if warden.charsShown < len(currLine):
                         warden.charsShown = len(currLine)
                     elif warden.advanceDialogue():
-                        finishWardenIntro()
+                        if warden.defeated:
+                            current_state = ENDING_CHOICE
+                        else:
+                            finishWardenIntro()
             
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if current_state == READING:
                 current_state = PLAYING
+            elif current_state == ENDING_EPILOGUE:
+                skipOrAdvanceEpilogue()
             elif current_state == WARDEN_DIALOGUE and warden and not warden.defeated:
                 currLine = warden.dialogue_lines[warden.dialogue_index]
                 if warden.charsShown < len(currLine):
                     warden.charsShown = len(currLine)
                 elif warden.advanceDialogue():
-                    finishWardenIntro()
+                    if warden.defeated:
+                        current_state = ENDING_CHOICE
+                    else:
+                        finishWardenIntro()
 
         if current_state == MENU:
             if btn_start.is_clicked(event):
@@ -571,7 +822,7 @@ while running:
                 current_state = MENU
         elif current_state == PAUSED:
             if btn_resume.is_clicked(event):
-                current_state = PLAYING
+                current_state = PREVIOUS_STATE
             if btn_journal.is_clicked(event):
                 current_state = JOURNAL
             if btn_main_menu.is_clicked(event):
@@ -590,20 +841,15 @@ while running:
                 current_state = start_game(current_slot, restoreTimeAndJournal=False)
             if gameOverMenuBtn.is_clicked(event):
                 current_state = MENU
-        elif current_state == WARDEN_DIALOGUE and warden and warden.defeated:
-            if btn_take_place.is_clicked(event):
-                apply_choice("warden")
-            elif btn_break_cycle.is_clicked(event):
-                apply_choice("break")
         
-    if current_state == PLAYING or current_state == HACKING or current_state == WARDEN_INTRO:
+    if current_state == PLAYING or current_state == HACKING or current_state == WARDEN_INTRO or current_state == WARDEN_OUTRO or current_state == ENDING_CHOICE:
         for t in terminals:
 
             autoExit = t.updateTimer(1 / FPS, t.hasStarted)
 
             if autoExit and current_state == HACKING and activeTerminal == t:
                 activeTerminal = None
-                current_state = PLAYING
+                current_state = hackReturnState
 
         for door in doors:
             door.update(dt=dt, isPause = (current_state == PAUSED) or camera.isTrans)
@@ -611,7 +857,7 @@ while running:
         for key in loreKeys:
             key.update()
 
-        if timer_active and not camera.isTrans:
+        if timer_active and not camera.isTrans and current_state not in (WARDEN_INTRO, WARDEN_OUTRO, ENDING_CHOICE):
             world_timer += dt
 
 
@@ -641,14 +887,17 @@ while running:
                         hackedCount = sum(1 for t in terminals if t.room == "warden" and t.isHacked)
                         if hackedCount >= 8 and not warden.defeated:
                             warden.defeated = True
-                            warden.talking = True
-                            warden.dialogue_lines = [
-                                "smth smth smth",
-                                "Take their place and continue the cycle,",
-                                "or break it and let the realm fade?",
-                            ]
-                            warden.dialogue_index = 0
-                            current_state = WARDEN_DIALOGUE
+                            current_state = WARDEN_OUTRO
+                            wardenOutroStage = "flash_out"
+                            # wardenOutroTimer = 0.0
+                            # warden.talking = True
+                            # warden.dialogue_lines = [
+                            #     "smth smth smth",
+                            #     "Take their place and continue the cycle,",
+                            #     "or break it and let the realm fade?",
+                            # ]
+                            # warden.dialogue_index = 0
+                            # current_state = WARDEN_DIALOGUE
 
             player.update(activePhysicsPlatforms, None, camera.isTrans, moveInput)
 
@@ -699,9 +948,63 @@ while running:
                     wardenIntroStage = None
                     current_state = WARDEN_DIALOGUE
 
+        elif current_state == WARDEN_OUTRO:
+            wardenOutroTimer += dt
+            if wardenOutroStage == "flash_out":
+                if wardenOutroTimer >= WARDEN_OUTRO_FLASH_TIME:
+                    player.rect.x, player.rect.y = WARDEN_OUTRO_TELEPORT_POS
+                    player.vel_x = 0
+                    player.vel_y = 0
+
+                    warden.rect.x, warden.rect.y = WARDEN_OUTRO_WARDEN_POS
+                    warden.posedDown = True
+
+                    currRoom = ENDING_ROOM_INDEX
+                    camera.snapToRoom(rooms[currRoom])
+
+                    wardenOutroStage = "hold"
+                    wardenOutroTimer = 0.0
+
+            elif wardenOutroStage == "hold":
+                if wardenOutroTimer >= WARDEN_OUTRO_HOLD_TIME:
+                    wardenOutroStage = "fade_back"
+                    wardenOutroTimer = 0.0
+
+            elif wardenOutroStage == "fade_back":
+                if wardenOutroTimer >= WARDEN_OUTRO_FADE_BACK_TIME:
+                    wardenOutroStage = None
+                    warden.dialogue_lines = DEFEAT_LINES
+                    warden.dialogue_index = 0
+                    warden.charsShown = 0.0
+                    warden.talking = True
+                    current_state = WARDEN_DIALOGUE
+
+        elif current_state == ENDING_CHOICE:
+            endingTerminalFadeTimer += dt
+            fadeProgress = min(1.0, endingTerminalFadeTimer / ENDING_TERMINAL_FADE_TIME)
+            alpha = int(255 * fadeProgress)
+
+            if endingWardenTerminal:
+                endingWardenTerminal.spawnAlpha = alpha
+            if endingBreakTerminal:
+                endingBreakTerminal.spawnAlpha = alpha
+
+            camera.update()
+            if not camera.isTrans:
+                keys = pygame.key.get_pressed()
+                moveInput = player.input(keys)
+                activePhysicsPlatforms = platforms
+                player.update(activePhysicsPlatforms, None, camera.isTrans, moveInput)
+
+            if endingWardenTerminal and endingWardenTerminal.isHacked:
+                startEndingSeq("warden")
+            elif endingBreakTerminal and endingBreakTerminal.isHacked:
+                startEndingSeq("break")
+
     anyAlarm = any(t.alarmTriggered for t in terminals)
-    if anyAlarm:
-        flashTimer += 1
+    if anyAlarm and not current_state == WARDEN_OUTRO:
+        if current_state == PLAYING:
+            flashTimer += 1
         if flashTimer % 30 == 0:
             alarmOverlay = not alarmOverlay 
     else:
@@ -728,9 +1031,6 @@ while running:
     elif current_state == GAME_OVER:
         respawnBtn.update(mouse_pos)
         gameOverMenuBtn.update(mouse_pos)
-    elif current_state == WARDEN_DIALOGUE and warden and warden.defeated:
-        btn_take_place.update(mouse_pos)
-        btn_break_cycle.update(mouse_pos)
 
     if current_state == MENU:
             screen.fill(BLACK)
@@ -771,7 +1071,13 @@ while running:
         draw_reading()
 
     elif current_state == ENDING:
-        draw_ending()
+        drawEnding()
+
+    elif current_state == ENDING_FADE:
+        drawEndingFade()
+
+    elif current_state == ENDING_EPILOGUE:
+        drawEndingEpilogue()
 
     elif current_state == WARDEN_DIALOGUE:
         draw_warden_dialogue()
@@ -779,14 +1085,14 @@ while running:
     elif current_state == WARDEN_INTRO:
         draw_warden_intro()
 
+    elif current_state == WARDEN_OUTRO:
+        draw_warden_outro()
+
+    elif current_state == ENDING_CHOICE:
+        draw_ending_choice()
+
     elif current_state in (PLAYING, HACKING, PAUSED, GAME_OVER):
         screen.fill((30, 30, 60))
-
-        # if currRoom == 18 and not camera.isTrans:
-        #     roomText = small_font.render("WATCH OUT!", True, WHITE)
-        #     worldRect = pygame.Rect(7450, -1250, roomText.get_width(), roomText.get_height())
-        #     screenRect = camera.apply(worldRect)
-        #     screen.blit(roomText, screenRect.topleft)
 
         if currRoom == 19 and not camera.isTrans:
             lines = [
@@ -818,9 +1124,9 @@ while running:
         for c in checkPoints:
             screenRect = camera.apply(c.rect)
             cSurf = pygame.Surface((screenRect.width, screenRect.height), pygame.SRCALPHA)
-            cSurf.fill((255, 255, 0, 90))
+            cSurf.fill((66, 212, 245, 90))
             screen.blit(cSurf, screenRect.topleft)
-            pygame.draw.rect(screen, YELLOW, screenRect, 2)
+            # pygame.draw.rect(screen, LIGHT_BLUE, screenRect, 2)
         
         if not camera.isTrans:
 
@@ -871,12 +1177,6 @@ while running:
         
 
         elif current_state == PAUSED:
-            screen.fill((30, 30, 60))
-            for p in platforms:
-                screenRect = camera.apply(p)
-                pygame.draw.rect(screen, GREEN, screenRect)
-                pygame.draw.rect(screen, WHITE, screenRect, 2)
-            player.draw(screen, camera)
             overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
             overlay.set_alpha(180)
             overlay.fill(BLACK)
@@ -904,7 +1204,10 @@ while running:
             draw_text("System Terminal Hack", menu_font, LIGHT_PURPLE, ((SCREEN_WIDTH // 2, 35)))
 
             if activeTerminal.isHacked:
-                statusText = "Acces Granted"
+                if activeTerminal.room in ("endingChoiceWarden", "endingChoiceBreak"):
+                    statusText = "Ending Reached"
+                else:
+                    statusText = "Access Granted"
                 statusColor = GREEN
             elif activeTerminal.alarmTriggered:
                 statusText = "Alarm Triggered"
@@ -927,8 +1230,6 @@ while running:
             draw_text(f"Time Remaining: {activeTerminal.timeLeft:.1f}s", menu_font, timeColor, (SCREEN_WIDTH // 2, 680))
             
             draw_text("Press [E] to exit", small_font, WHITE, (SCREEN_WIDTH // 2, 720))
-                        
-            
 
     pygame.display.flip()
 

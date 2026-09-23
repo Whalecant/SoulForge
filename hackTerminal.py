@@ -18,6 +18,8 @@ class Terminal:
         self.exitDelay = 0.5
         self.hasStarted = False
 
+        self.spawnAlpha = 255
+
         self.minigame = hackingMinigame(
             keyPos = keyPos,
             exitPos = exitPos,
@@ -89,8 +91,11 @@ class Terminal:
         else:
             color = PURPLE
 
-        pygame.draw.rect(surface, color, screenRect)
-        pygame.draw.rect(surface, BLACK, screenRect, 2)
+        termSurf = pygame.Surface((screenRect.width, screenRect.height), pygame.SRCALPHA)
+        pygame.draw.rect(termSurf, color, termSurf.get_rect())
+        pygame.draw.rect(termSurf, BLACK, termSurf.get_rect(), 2)
+        termSurf.set_alpha(self.spawnAlpha)
+        surface.blit(termSurf, screenRect.topleft)
 
     def drawMinigame(self, surface, screenWidth, screenHeight, smallFont):
         self.minigame.draw(surface, screenWidth, screenHeight, smallFont)
