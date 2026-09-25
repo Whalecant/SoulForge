@@ -54,6 +54,12 @@ class Player:
         self.fastFallForce = 1.5
         self.isFastFall = False
 
+        self.justJumped = False
+        self.justLanded = False
+        self.justWalked = False
+        self.footstepTimer = 0
+        self.footstepInterval = 0
+
     def input(self,keys):
         moveInput = 0
 
@@ -92,11 +98,6 @@ class Player:
 
         self.checkSurroundings(platforms, moveInput)
 
-        # if self.isFastFall:
-        #     self.vel_y += GRAVITY * self.fastFallForce
-        # else:
-        #     self.vel_y += GRAVITY
-
         if self.isWallSlide:
             slideLimit = self.fastSlideSpd if self.isFastFall else self.maxSlideSpd
 
@@ -119,16 +120,25 @@ class Player:
                 self.vel_y += GRAVITY
 
             self.vel_y = min(self.vel_y, MAX_FAST_FALL_SPEED if self.isFastFall else MAX_FALL_SPEED)
-        
-        # keys = pygame.key.get_pressed()
-        # moving = keys[pygame.K_LEFT] or keys[pygame.K_a] or keys[pygame.K_RIGHT] or keys[pygame.K_d]
-        # if not moving:
-        #     self.vel_x *= FRICTION
 
         self.moveX(platforms)
 
         wasOnGround = self.on_ground
         self.moveY(platforms)
+
+        self.justLanded = not wasOnGround and self.on_ground
+
+        isWalking = self.on_ground and abs(self.vel_x) > 0.5
+        if isWalking:
+            self.footstepTimer += 1
+            if self.footstepTimer >= self.footstepInterval:
+                self.footstepTimer = 0
+                self.justWalked = True
+            else:
+                self.justWalked = False
+        else:
+            self.footstepTimer = 0
+            self.justWalked = False
 
         if self.on_ground:
             self.isJump = False
@@ -241,6 +251,7 @@ class Player:
             self.slideTimer = max(0, self.slideTimer - 0.5)
 
     def jump(self, moveInput):
+        self.justJumped = False
         if(self.isWallSlide or self.isTouchWall) and not self.on_ground and self.wallLockout == 0:
             self.isFastFall = False
             self.isWallSlide = False
@@ -259,10 +270,12 @@ class Player:
             self.vel_x = appliedX
             self.vel_y = self.wallJumpForceY
             self.isJump = True
+            self.justJumped = True
         elif self.on_ground or self.coyoteTimer > 0:
             self.vel_y = JUMP_STRENGTH
             self.coyoteTimer = 0
             self.isJump = True
+            self.justJumped = True
 
     def mantleClimb(self):
         self.vel_y = JUMP_STRENGTH * 0.6

@@ -1,6 +1,7 @@
 import pygame
 import copy
 import sys
+import os
 from player import Player # type: ignore
 from saveManager import SaveManager, Button # type: ignore
 from camera import Camera #type: ignore
@@ -11,9 +12,11 @@ from lore import LoreKey, JournalManager, NotificationManager, JOURNAL_CHAPTERS,
 from warden import Warden #type: ignore
 from checkpointManager import Checkpoint #type: ignore
 from buildLevel import build_level, WARDEN_ARENA_ROOMS, ENDING_ROOM_INDEX #type: ignore
+from audioManager import audioManager #type: ignore
 #imma be honest, idk why the three things above are that bugged lol
 
 pygame.init()
+audioManager = audioManager()
 
 SCREEN_WIDTH = 1000
 SCREEN_HEIGHT = 750
@@ -47,7 +50,18 @@ tiny_font = pygame.font.Font(None, 22)
 clock = pygame.time.Clock()
 FPS = 60
 
-SAVE_FILE = "save_data.json"
+def get_save_dir(app_name="StealthPlatformer"):
+    if sys.platform == "win32":
+        base = os.environ.get("APPDATA", os.path.expanduser("~"))
+    elif sys.platform == "darwin":
+        base = os.path.join(os.path.expanduser("~"), "Library", "Application Support")
+    else:
+        base = os.environ.get("XDG_DATA_HOME", os.path.join(os.path.expanduser("~"), ".local", "share"))
+    save_dir = os.path.join(base, app_name)
+    os.makedirs(save_dir, exist_ok=True)
+    return save_dir
+
+SAVE_FILE = os.path.join(get_save_dir(), "save_data.json")
 
 #change these values later
 WARDEN_ARENA_ROOMS = [20, 21, 22, 23]
@@ -413,6 +427,13 @@ def checkCheckpoints():
             saveNotificationTimer = 2.0
         c.playerEntry = touching
 
+def updateBtn(btn, mouse_pos):
+    btn.update(mouse_pos)
+    if btn.justHovered:
+        audioManager.playSfx("hover")
+    if btn.justUnhovered:
+        audioManager.playSfx("unhover")
+
 def finishWardenIntro():
     global current_state
     save_manager.markWardenIntroSeen(current_slot)
@@ -426,6 +447,7 @@ def startEndingSeq(choice):
     endingChoice = choice
     endingFadeTimer = 0.0
     save_manager.add_ending(current_slot, "new_warden" if choice == "warden" else "broken_cycle")
+    save_game()
     current_state = ENDING_FADE
 
 def beginEpilogue():
@@ -706,6 +728,11 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
+        elif event.type == pygame.WINDOWFOCUSLOST:
+            if current_state == PLAYING:
+                PREVIOUS_STATE = current_state
+                current_state = PAUSED
+                
         if event.type == pygame.KEYDOWN:
             if current_state == HACKING and activeTerminal:
                 activeTerminal.input(event)
@@ -714,6 +741,7 @@ while running:
                 if current_state == PLAYING or current_state == HACKING:
                     PREVIOUS_STATE = current_state
                     current_state = PAUSED
+                    audioManager.playSfx("pause")
                 elif current_state == PAUSED:
                     current_state = PREVIOUS_STATE
                 elif current_state == LEVEL_SELECT:
@@ -899,6 +927,15 @@ while running:
                             # warden.dialogue_index = 0
                             # current_state = WARDEN_DIALOGUE
 
+            if player.justJumped:
+                audioManager.playSfx("jump")
+                player.justJumped = False
+            if player.justLanded:
+                audioManager.playSfx("land")
+            if player.justWalked:
+                audioManager.playSfx("walk")
+                
+
             player.update(activePhysicsPlatforms, None, camera.isTrans, moveInput)
 
             check_lore_keys()
@@ -1009,28 +1046,49 @@ while running:
             alarmOverlay = not alarmOverlay 
     else:
         flashTimer = 0
-        alarmOverlay = False   
+        alarmOverlay = False 
+
+    alarmActive = anyAlarm and current_state != WARDEN_OUTRO
+    if alarmActive and audioManager.bgmSpeed != 1.25:
+        audioManager.setBgmSpeed(1.25)
+    elif not alarmActive and audioManager.bgmSpeed != 1.0:
+        audioManager.setBgmSpeed(1.0)
+
+    audioManager.update()
 
     if current_state == MENU:
-        btn_start.update(mouse_pos)
-        btn_quit.update(mouse_pos)
+        updateBtn(btn_start, mouse_pos)
+        updateBtn(btn_quit, mouse_pos)
     elif current_state == LEVEL_SELECT:
         for btn in slot_buttons:
-            btn.update(mouse_pos)
+            updateBtn(btn, mouse_pos)
         for btn in reset_buttons:
-            btn.update(mouse_pos)
-        btn_back_menu.update(mouse_pos)
+            updateBtn(btn, mouse_pos)
+        updateBtn(btn_back_menu, mouse_pos)
     elif current_state == PAUSED:
-        btn_resume.update(mouse_pos)
-        btn_journal.update(mouse_pos)
-        btn_main_menu.update(mouse_pos)
+        updateBtn(btn_resume, mouse_pos)
+        updateBtn(btn_journal, mouse_pos)
+        updateBtn(btn_main_menu, mouse_pos)
     elif current_state == JOURNAL:
-        btn_journal_prev.update(mouse_pos)
-        btn_journal_next.update(mouse_pos)
-        btn_journal_back.update(mouse_pos)
+        updateBtn(btn_journal_prev, mouse_pos)
+        updateBtn(btn_journal_next, mouse_pos)
+        updateBtn(btn_journal_back, mouse_pos)
     elif current_state == GAME_OVER:
-        respawnBtn.update(mouse_pos)
-        gameOverMenuBtn.update(mouse_pos)
+        updateBtn(respawnBtn, mouse_pos)
+        updateBtn(gameOverMenuBtn, mouse_pos)
+
+    if current_state == MENU or current_state == LEVEL_SELECT:
+        audioManager.playBgm("assets/music/bgm/mainMenuTheme.wav")
+    elif current_state == PLAYING:
+        if currRoom in WARDEN_ARENA_ROOMS or currRoom == 19:
+            audioManager.playBgm("assets/music/bgm/bossBgm.wav")
+        else:
+            audioManager.playBgm("assets/music/bgm/mainLevelBGM.wav")
+
+    if current_state == PAUSED and not audioManager.bgmPaused:
+        audioManager.pauseBgm()
+    elif current_state != PAUSED and audioManager.bgmPaused:
+        audioManager.resumeBgm()
 
     if current_state == MENU:
             screen.fill(BLACK)
@@ -1139,7 +1197,7 @@ while running:
 
         player.draw(screen, camera)
         hint = small_font.render("ESC to pause", True, WHITE)
-        screen.blit(hint, (10, 10))
+        screen.blit(hint, (15, 15))
 
         if current_state == PLAYING:
             for t in terminals:

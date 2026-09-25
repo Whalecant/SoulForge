@@ -14,10 +14,17 @@ class Button:
         self.text = text
         self.text_surface = self.font.render(text, True, WHITE)
         self.text_rect = self.text_surface.get_rect(center=self.rect.center)
+        self.isHovered = False
+        self.justHovered = False
+        self.justUnhovered = False
 
     def update(self, mouse_pos):
-        self.current_color = self.hover_color if self.rect.collidepoint(mouse_pos) else self.color
-
+        hovering = self.rect.collidepoint(mouse_pos)
+        self.justHovered = hovering and not self.isHovered
+        self.justUnhovered = (not hovering) and self.isHovered
+        self.isHovered = hovering
+        self.current_color = self.hover_color if hovering else self.color
+        
     def draw(self, surface):
         pygame.draw.rect(surface, self.current_color, self.rect, border_radius=8)
         pygame.draw.rect(surface, WHITE, self.rect, 2, border_radius=8)

@@ -394,7 +394,7 @@ def build_level(level):
         pygame.Rect(1000, 2225, 1000, 25), #floor
         pygame.Rect(1550, 1475, 25, 250),
         pygame.Rect(1400, 1725, 175, 25),
-        pygame.Rect(1400, 1650, 25, 75),
+        pygame.Rect(1400, 1650, 35, 75),
         pygame.Rect(1025, 1850, 225, 25),
         pygame.Rect(1450, 1900, 125, 25),
         pygame.Rect(1000, 2075, 900, 25),
