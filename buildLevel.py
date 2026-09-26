@@ -592,7 +592,7 @@ def build_level(level):
         pygame.Rect(5200, -2275, 800, 50),
         pygame.Rect(5500, -2550, 100, 300),
         pygame.Rect(5500, -3000, 100, 250),
-        pygame.Rect(5700, -2500, 150, 25),
+        pygame.Rect(5680, -2500, 200, 25),
         pygame.Rect(5200, -2700, 150, 25),
         pygame.Rect(5850, -2650, 150, 25),
                         
@@ -628,7 +628,7 @@ def build_level(level):
         Terminal(x = 3500, y = 1300, **copy.deepcopy(PUZZLES[4]), timeLimit=20.0, room="general"),
         Terminal(x = 3900, y = 2175, **copy.deepcopy(PUZZLES[5]), timeLimit=20.0, room="general"),
         Terminal(x = 3190, y = 600, **copy.deepcopy(PUZZLES[3]), timeLimit=20.0, room="general"),
-        Terminal(x = 4625, y = 450, **copy.deepcopy(PUZZLES[4]), timeLimit=20.0, room="general"),
+        Terminal(x = 4625, y = 450, **copy.deepcopy(PUZZLES[4]), timeLimit=20.0, room="general", rotation=-90),
         Terminal(x=4650, y=-75, **copy.deepcopy(PUZZLES[5]), timeLimit=20.0, room="general"),
         Terminal(x=5800, y=450, **copy.deepcopy(PUZZLES[4]), timeLimit=20.0, room="general"),
         Terminal(x=5425, y=-350, **copy.deepcopy(PUZZLES[5]), timeLimit=20.0, room="general"),

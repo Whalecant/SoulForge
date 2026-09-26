@@ -1,5 +1,6 @@
 import pygame
-
+from spriteSheet import spriteSheet, animation
+import math
 
 GRAVITY = 0.6
 JUMP_STRENGTH = -13
@@ -59,6 +60,12 @@ class Player:
         self.justWalked = False
         self.footstepTimer = 0
         self.footstepInterval = 20
+
+        self.facingRight = False
+        self.idleTimer = 0
+
+        self.walkSheet = spriteSheet("assets/sprites/Chud-Sheet.png", 64, 64, scale=0.75)
+        self.walkAnim = animation(self.walkSheet.frames, frameDuration=6)
 
     def input(self,keys):
         moveInput = 0
@@ -156,6 +163,21 @@ class Player:
         else:
             if self.coyoteTimer > 0:
                 self.coyoteTimer -= 1
+        
+        if self.isWallSlide:
+            self.facingRight = (self.wallDir == 1)
+        elif self.vel_x > 0.2:
+            self.facingRight = False
+        elif self.vel_x < -0.2:
+            self.facingRight = True
+
+        isMoving = self.on_ground and abs(self.vel_x) > 0.5
+        if isMoving:
+            self.walkAnim.update()
+            self.idleTimer = 0
+        else:
+            self.idleTimer += 1
+
 
     def moveX(self, platforms):
         rem = self.vel_x
@@ -286,5 +308,22 @@ class Player:
 
     def draw(self, surface, camera):
         screenRect = camera.apply(self.rect)
-        pygame.draw.rect(surface, BLUE, screenRect)
-        pygame.draw.rect(surface, WHITE, screenRect, 2)
+
+        isMoving = self.on_ground and abs(self.vel_x) > 0.5
+
+        if isMoving:
+            frame = self.walkAnim.getCurrFrame()
+        elif not self.on_ground:
+            frame = self.walkSheet.frames[0]
+        else:
+            baseFrame = self.walkSheet.frames[0]
+            squish = 1 + 0.06 * math.sin(self.idleTimer / 15.0)
+            w = baseFrame.get_width()
+            h = int(baseFrame.get_height() * squish)
+            frame = pygame.transform.scale(baseFrame, (w, h))
+
+        if not self.facingRight:
+            frame = pygame.transform.flip(frame, True, False)
+
+        frameRect = frame.get_rect(midbottom=screenRect.midbottom)
+        surface.blit(frame, frameRect)

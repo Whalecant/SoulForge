@@ -2,6 +2,8 @@ import pygame
 import math
 import random
 import heapq
+import sys
+import os
 
 GRAVITY = 0.6
 JUMP_STRENGTH = -15
@@ -18,9 +20,12 @@ CYAN = (100, 220, 220)
 DARK_GRAY = (60, 60, 60)
 RED = (200, 50, 50)
 
+def resourcePath(relativePath):
+    basePath = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(basePath, relativePath)
 class Warden:
     def __init__(self, x, y):
-        self.rect = pygame.Rect(x, y, 50, 70)
+        self.rect = pygame.Rect(x, y, 40, 75)
         self.hitbox = self.rect.copy()
 
         self.vel_x = 0
@@ -76,6 +81,16 @@ class Warden:
         self.skipHold = 0.0
         self.skipHoldTime = 1.0
         self.skipFont = None
+
+        self.sprite = pygame.image.load(resourcePath("assets/sprites/Gerard.png")).convert_alpha()
+        self.posedDownSprite = None #will be added later :) ("Yamcha pose")
+        self.eyeSprite = pygame.image.load(resourcePath("assets/sprites/Gerard_Eyes.png")).convert_alpha()
+
+        scale = 0.75
+        newSize = (int(self.sprite.get_width() * scale), int(self.sprite.get_height() * scale))
+
+        self.sprite = pygame.transform.scale(self.sprite, newSize)
+
 
     def advanceDialogue(self):
         self.dialogue_index += 1
@@ -399,33 +414,27 @@ class Warden:
         self.hitbox.topleft = self.rect.topleft
 
     def draw(self, surface, camera=None):
-        color = PURPLE if not self.defeated else (70, 53, 87)
-        drawRect = (camera.apply(self.rect) if camera else self.rect).copy()
+        screenRect = camera.apply(self.rect)
 
-        if not self.posedDown:
-            drawRect.y += int(math.sin(self.hover) * 15)
 
-        bodySurf = pygame.Surface((drawRect.width, drawRect.height), pygame.SRCALPHA)
-        bodyRect = bodySurf.get_rect()
 
-        # Body
-        pygame.draw.rect(bodySurf, color, bodyRect, border_radius=6)
-        pygame.draw.rect(bodySurf, WHITE, bodyRect, 2, border_radius=6)
+        sprite = self.posedDownSprite if (self.posedDown and self.posedDownSprite is not None) else self.sprite
+        
+        if self.defeated:
+            sprite = pygame.transform.rotate(sprite, 90)
+            sprite = pygame.transform.flip(sprite, 1, 0) #temp
 
-        # Eye
-        eye_color = RED if (not self.talking and not self.defeated) else CYAN
-        eye_y = bodyRect.y + 20
-        pygame.draw.circle(bodySurf, WHITE, (bodyRect.centerx - 10, eye_y), 5)
-        pygame.draw.circle(bodySurf, WHITE, (bodyRect.centerx + 10, eye_y), 5)
-        pygame.draw.circle(bodySurf, eye_color, (bodyRect.centerx - 10, eye_y), 3)
-        pygame.draw.circle(bodySurf, eye_color, (bodyRect.centerx + 10, eye_y), 3)
+        frameRect = sprite.get_rect(midbottom=screenRect.midbottom)
+        surface.blit(sprite, frameRect)
 
-        if self.posedDown:
-            bodySurf = pygame.transform.rotate(bodySurf, 90)
-
-        surface.blit(bodySurf, bodySurf.get_rect(center=drawRect.center))
+        if not self.defeated:
+            eyeBob = math.sin(self.hover) * 4 
+            eyeRect = self.eyeSprite.get_rect(center=(frameRect.centerx, frameRect.centery + eyeBob))
+            surface.blit(self.eyeSprite, eyeRect)
 
         #for debugging
+        """
         if camera and self.path and not self.defeated:
             pts = [camera.apply(pygame.Rect(x, y, 0, 0)).topleft for x, y in self.path]
-            pygame.draw.lines(surface, (255, 255, 0), False, [drawRect.center] + pts, 2)
+            pygame.draw.lines(surface, (255, 255, 0), False, [frameRect.center] + pts, 2)
+        """

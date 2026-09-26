@@ -1,6 +1,7 @@
 import pygame
 import math
 from collections import deque
+from spriteSheet import spriteSheet, animation
 
 
 
@@ -63,11 +64,26 @@ class Enemy:
         self.blocked_nodes = {}   # node_id -> frames remaining before it's usable again
         self.returning_timer = 0
 
+        self.patrolSheet = spriteSheet("assets/sprites/Moa_1_normal-Sheet.png", 64, 64, scale = 0.75)
+        self.chaseSheet = spriteSheet("assets/sprites/Moa_1_Aggro-Sheet.png", 64, 64, scale = 0.75)
+        self.anim = animation(self.patrolSheet.frames, frameDuration=8)
+
         pygame.font.init()
         self.font = pygame.font.SysFont("Consolas", 14, bold=True)
 
     def update(self, platforms, player, forceChase = False):
         self.vel_y += GRAVITY
+
+        if self.state == "CHASE" or self.state == "RETURNING":
+            activeFrames = self.chaseSheet.frames if self.state in ("CHASE", "RETURNING") else self.patrolSheet.frames
+            self.anim.frames = activeFrames
+            if self.on_ground:
+                self.anim.update()
+        else:
+            activeFrames = self.patrolSheet.frames
+
+        self.anim.frames = activeFrames
+        self.anim.update()
 
         if self.blocked_nodes:
             for node in list(self.blocked_nodes.keys()):
@@ -394,7 +410,6 @@ class Enemy:
         drawRect = camera.apply(self.rect) if camera else self.rect
         visionRect = camera.apply(vision) if camera else vision
 
-        bodyColor = RED if self.state == "CHASE" else (ORANGE if self.state == "RETURNING" else CYAN)
         visionColor = RED if self.state == "CHASE" else (LIGHT_ORANGE if self.state == "RETURNING" else YELLOW)
 
         vision_surface = pygame.Surface((visionRect.width, visionRect.height))
@@ -402,13 +417,11 @@ class Enemy:
         vision_surface.fill(visionColor)
         surface.blit(vision_surface, visionRect.topleft)
 
-        pygame.draw.rect(surface, bodyColor, drawRect)
-        pygame.draw.rect(surface, WHITE, drawRect, 2)
-
-        eye_x = drawRect.centerx + (8 if self.facing == 1 else -8)
-        eye_y = drawRect.y + 12
-        pygame.draw.circle(surface, WHITE, (eye_x, eye_y), 4)
-        pygame.draw.circle(surface, BLACK, (eye_x, eye_y), 2)
+        frame = self.anim.getCurrFrame()
+        if self.facing == 1:
+            frame = pygame.transform.flip(frame, True, False)
+        frameRect = frame.get_rect(midbottom=drawRect.midbottom)
+        surface.blit(frame, frameRect)
 
         if self.state == "CHASE":
             seconds_left = max(0, self.chaseTimer / 60.0)
@@ -417,6 +430,7 @@ class Enemy:
             text_rect = text_surface.get_rect(center=(drawRect.centerx, drawRect.top - 12))
             surface.blit(text_surface, text_rect)
 
+    """for debugging
     def draw_waypoints(self, surface, camera=None):
         spawn_rect = pygame.Rect(self.spawn_x - 15, self.spawn_y - 20, 30, 40)
         draw_spawn = camera.apply(spawn_rect) if camera else spawn_rect
@@ -441,7 +455,7 @@ class Enemy:
                     nx, ny = self.waypoints[n_id][:2]
                     n_draw_pos = camera.apply_point((nx, ny)) if camera and hasattr(camera, 'apply_point') else (camera.apply(pygame.Rect(nx, ny, 1, 1)).topleft if camera else (nx, ny))
                     pygame.draw.line(surface, (0, 255, 255), draw_pos, n_draw_pos, 1)
-
+    """
     def saveDict(self, checkpoints = None):
         nearCheckpoints = False
 

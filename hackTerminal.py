@@ -1,5 +1,6 @@
 import pygame
 from hackMinigame import hackingMinigame #type: ignore
+from spriteSheet import spriteSheet, animation
 
 RED = (255, 50, 50)
 PURPLE = (128, 0, 128)
@@ -7,8 +8,15 @@ LIGHT_PURPLE = (203, 195, 227)
 BLACK = (0, 0, 0)
 
 class Terminal:
-    def __init__(self, x, y, walls, keyPos = None, exitPos = None, dummies = None, dummyCount = 1, timeLimit = 25.0, room="general"):
-        self.rect = pygame.Rect(x, y, 40, 50)
+    def __init__(self, x, y, walls, keyPos = None, exitPos = None, dummies = None, rotation = 0, dummyCount = 1, timeLimit = 25.0, room="general"):
+        
+        width, height = 40, 50
+
+        if rotation == 90 or rotation == -90:
+            width, height = height, width
+        self.rect = pygame.Rect(x, y, width, height)
+
+        self.rotation = rotation
         self.timeLimit = timeLimit
         self.timeLeft = timeLimit
         self.isHacked = False
@@ -29,6 +37,9 @@ class Terminal:
         )
 
         self.room = room
+
+        self.sheet = spriteSheet("assets/sprites/Hack_Console-Sheet.png", 64, 64)
+
 
     def saveDict(self):
         return{
@@ -85,17 +96,21 @@ class Terminal:
         screenRect = camera.apply(self.rect)
 
         if self.isHacked:
-            color = LIGHT_PURPLE
+            sprite = self.sheet.frames[2]  # success
         elif self.alarmTriggered:
-            color = RED
+            sprite = self.sheet.frames[1]  # failed
         else:
-            color = PURPLE
+            sprite = self.sheet.frames[0]  # default
 
-        termSurf = pygame.Surface((screenRect.width, screenRect.height), pygame.SRCALPHA)
-        pygame.draw.rect(termSurf, color, termSurf.get_rect())
-        pygame.draw.rect(termSurf, BLACK, termSurf.get_rect(), 2)
-        termSurf.set_alpha(self.spawnAlpha)
-        surface.blit(termSurf, screenRect.topleft)
+        spriteToDraw = sprite.copy()
+        spriteToDraw.set_alpha(self.spawnAlpha)
+
+        if self.rotation != 0:
+            spriteToDraw = pygame.transform.rotate(spriteToDraw, self.rotation)
+            frameRect = spriteToDraw.get_rect(center=screenRect.center)
+        else:
+            frameRect = spriteToDraw.get_rect(midbottom=screenRect.midbottom)
+        surface.blit(spriteToDraw, frameRect)
 
     def drawMinigame(self, surface, screenWidth, screenHeight, smallFont):
         self.minigame.draw(surface, screenWidth, screenHeight, smallFont)

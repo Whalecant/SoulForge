@@ -83,7 +83,6 @@ ENDING_FADE = "endingFade"
 ENDING_EPILOGUE = "endingEpilogue"
 ENDING = "ending"
 
-
 PREVIOUS_STATE = PLAYING
 
 wardenIntroStage = None
@@ -262,13 +261,27 @@ for i in range(3):
     slot_buttons.append(Button(f"SLOT {i+1}", SCREEN_WIDTH // 2 - 200, y, 250, 60, BLUE, LIGHT_BLUE, small_font))
     reset_buttons.append(Button("RESET", SCREEN_WIDTH // 2 + 70, y, 130, 60, RED, LIGHT_RED, small_font))
 
+DEBUG_HITBOXES = False
+
+def drawHitbox(surface, rect, camera, color=(255, 0, 0)):
+    pygame.draw.rect(surface, color, camera.apply(rect), 2)
 
 def syncEndingTerminals():
     global endingWardenTerminal, endingBreakTerminal
     endingWardenTerminal = next((t for t in terminals if t.room == "endingChoiceWarden"), None)
     endingBreakTerminal = next((t for t in terminals if t.room == "endingChoiceBreak"), None)
 
+def resourcePath(relativePath):
+    basePath = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(basePath, relativePath)
 
+
+menuEyeSprite = pygame.image.load(resourcePath("assets/sprites/Gerard_Eyes.png")).convert_alpha()
+menuEyeScale = 4
+menuEyeSprite = pygame.transform.scale(
+    menuEyeSprite,
+    (menuEyeSprite.get_width() * menuEyeScale, menuEyeSprite.get_height() * menuEyeScale)
+)
 
 levelData = build_level(0)
 rooms = levelData["rooms"]
@@ -574,12 +587,16 @@ def draw_warden_dialogue():
         platColor = GRAY
     else:
         screen.fill((30, 30, 60))
-        platColor = GREEN
+        platColor = (163, 157, 157)
     for p in platforms:
         pygame.draw.rect(screen, platColor, camera.apply(p))
     if warden:
         warden.draw(screen, camera)
+        if DEBUG_HITBOXES:
+            drawHitbox(screen, warden.hitbox, camera)
     player.draw(screen, camera)
+    if DEBUG_HITBOXES:
+        drawHitbox(screen, player.rect, camera)
 
     overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
     overlay.set_alpha(140)
@@ -611,12 +628,16 @@ def draw_warden_intro():
     screen.fill((30, 30, 60))
     for p in platforms:
         screenRect = camera.apply(p)
-        pygame.draw.rect(screen, GREEN, screenRect)
+        pygame.draw.rect(screen, (163, 157, 157), screenRect)
     for door in doors:
         door.draw(screen, camera)
     if warden:
         warden.draw(screen, camera)
+        if DEBUG_HITBOXES:
+            drawHitbox(screen, warden.hitbox, camera)
     player.draw(screen, camera)
+    if DEBUG_HITBOXES:
+        drawHitbox(screen, player.rect, camera)
 
     if wardenIntroStage == "fade_out":
         alpha = min(255, int(255 * (wardenIntroTimer / WARDEN_INTRO_FADE_TIME)))
@@ -640,7 +661,11 @@ def draw_warden_outro():
         pygame.draw.rect(screen, GRAY, screenRect)
     if warden:
         warden.draw(screen, camera)
+        if DEBUG_HITBOXES:
+            drawHitbox(screen, warden.hitbox, camera)
     player.draw(screen, camera)
+    if DEBUG_HITBOXES:
+        drawHitbox(screen, player.rect, camera)
 
     if wardenOutroStage == "flash_out":
         alpha = min(255, int(255 * (wardenOutroTimer / WARDEN_OUTRO_FLASH_TIME)))
@@ -669,8 +694,12 @@ def draw_ending_choice():
 
     if warden:
         warden.draw(screen, camera)
+        if DEBUG_HITBOXES:
+            drawHitbox(screen, warden.hitbox, camera)
 
     player.draw(screen, camera)
+    if DEBUG_HITBOXES:
+        drawHitbox(screen, player.rect, camera)
 
     ending_prompts = (
         (endingWardenTerminal, "Press E to Hack: Become the Warden"),
@@ -756,6 +785,10 @@ while running:
                     current_state = PLAYING
                 elif current_state == ENDING:
                     current_state = MENU
+
+            
+            elif event.key == pygame.K_F3:
+                DEBUG_HITBOXES = not DEBUG_HITBOXES
 
             elif event.key == pygame.K_SPACE and current_state == READING:
                 current_state = PLAYING
@@ -919,7 +952,9 @@ while running:
 
                     if currRoom in WARDEN_ARENA_ROOMS and warden:
                         hackedCount = sum(1 for t in terminals if t.room == "warden" and t.isHacked)
-                        if hackedCount >= 8 and not warden.defeated:
+                        wardenLoreCollected = all(key.collected for key in loreKeys if key.chapter_id in WARDEN_LORE_IDS)
+
+                        if hackedCount >= 8 and wardenLoreCollected and not warden.defeated:
                             warden.defeated = True
                             current_state = WARDEN_OUTRO
                             wardenOutroStage = "flash_out"
@@ -1105,6 +1140,8 @@ while running:
 
     if current_state == MENU:
             screen.fill(BLACK)
+            eyeRect = menuEyeSprite.get_rect(center=(SCREEN_WIDTH // 2 + 10, 350))
+            screen.blit(menuEyeSprite, eyeRect)
             draw_text("SOUL FORGE", title_font, PURPLE, (SCREEN_WIDTH // 2, 130))
             draw_text("The 73rd cycle", tiny_font, GRAY, (SCREEN_WIDTH // 2, 185))
             btn_start.draw(screen)
@@ -1183,11 +1220,13 @@ while running:
 
         for p in platforms:
             screenRect = camera.apply(p)
-            pygame.draw.rect(screen, GREEN, screenRect)
+            pygame.draw.rect(screen, (163, 157, 157), screenRect)
             #pygame.draw.rect(screen, WHITE, screenRect, 2)
 
         for t in terminals:
             t.draw(screen, camera)
+            if DEBUG_HITBOXES:
+                drawHitbox(screen, t.rect, camera, color=(0, 255, 255))
 
         for key in loreKeys:
             key.draw(screen, camera)
@@ -1203,12 +1242,18 @@ while running:
 
             for enemy in enemies:
                 enemy.draw(screen, camera)
-                enemy.draw_waypoints(screen, camera)
+                # enemy.draw_waypoints(screen, camera)
+                if DEBUG_HITBOXES:
+                    drawHitbox(screen, enemy.hitbox, camera)
 
             if warden:
                 warden.draw(screen, camera)
+                if DEBUG_HITBOXES:
+                    drawHitbox(screen, warden.hitbox, camera)
 
         player.draw(screen, camera)
+        if DEBUG_HITBOXES:
+            drawHitbox(screen, player.rect, camera)
         hint = small_font.render("ESC to pause", True, WHITE)
         screen.blit(hint, (15, 15))
 
