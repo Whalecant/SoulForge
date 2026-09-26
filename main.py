@@ -414,6 +414,7 @@ def check_lore_keys():
     for key in loreKeys:
         if not key.collected and player.rect.colliderect(key.rect):
             key.collected = True
+            audioManager.playSfx("loreGet")
             if journalManager.unlock(key.chapter_id):
                 reading_chapter = key.chapter_id
                 current_state = READING
@@ -447,7 +448,6 @@ def startEndingSeq(choice):
     endingChoice = choice
     endingFadeTimer = 0.0
     save_manager.add_ending(current_slot, "new_warden" if choice == "warden" else "broken_cycle")
-    save_game()
     current_state = ENDING_FADE
 
 def beginEpilogue():
@@ -735,7 +735,11 @@ while running:
                 
         if event.type == pygame.KEYDOWN:
             if current_state == HACKING and activeTerminal:
+                wasHacked = activeTerminal.isHacked
                 activeTerminal.input(event)
+                if not wasHacked and activeTerminal.isHacked:
+                    audioManager.playSfx("hacked")
+                
 
             if event.key == pygame.K_ESCAPE:
                 if current_state == PLAYING or current_state == HACKING:
@@ -904,12 +908,14 @@ while running:
                     enemy.update(activePhysicsPlatforms, player, forceChase = anyAlarm)
                     if enemy.hitbox.colliderect(player.rect):
                         current_state = GAME_OVER
+                        audioManager.playSfx("caught")
 
                 if warden:
                     warden.update(player, activePhysicsPlatforms, alarmActive = anyAlarm)
 
                     if warden.rect.colliderect(player.rect) and not warden.talking and not warden.defeated:
                         current_state = GAME_OVER
+                        audioManager.playSfx("caught")
 
                     if currRoom in WARDEN_ARENA_ROOMS and warden:
                         hackedCount = sum(1 for t in terminals if t.room == "warden" and t.isHacked)
@@ -927,14 +933,14 @@ while running:
                             # warden.dialogue_index = 0
                             # current_state = WARDEN_DIALOGUE
 
-            if player.justJumped:
-                audioManager.playSfx("jump")
-                player.justJumped = False
-            if player.justLanded:
-                audioManager.playSfx("land")
+            # if player.justJumped:
+            #     audioManager.playSfx("jump")
+            #     player.justJumped = False
+            # if player.justLanded:
+            #     audioManager.playSfx("land")
             if player.justWalked:
                 audioManager.playSfx("walk")
-                
+
 
             player.update(activePhysicsPlatforms, None, camera.isTrans, moveInput)
 
@@ -998,6 +1004,11 @@ while running:
 
                     currRoom = ENDING_ROOM_INDEX
                     camera.snapToRoom(rooms[currRoom])
+
+                    
+                    audioManager.stopBgm(fadeMs=300)
+                    audioManager.playSfx("outro")
+
 
                     wardenOutroStage = "hold"
                     wardenOutroTimer = 0.0
@@ -1084,6 +1095,8 @@ while running:
             audioManager.playBgm("assets/music/bgm/bossBgm.wav")
         else:
             audioManager.playBgm("assets/music/bgm/mainLevelBGM.wav")
+    elif current_state == ENDING_EPILOGUE or current_state == ENDING:
+        audioManager.playBgm("assets/music/bgm/epilogueBgm.wav")
 
     if current_state == PAUSED and not audioManager.bgmPaused:
         audioManager.pauseBgm()

@@ -58,7 +58,7 @@ class Player:
         self.justLanded = False
         self.justWalked = False
         self.footstepTimer = 0
-        self.footstepInterval = 0
+        self.footstepInterval = 20
 
     def input(self,keys):
         moveInput = 0

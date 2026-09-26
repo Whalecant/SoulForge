@@ -13,6 +13,8 @@ class audioManager:
         if not pygame.mixer.get_init():
             pygame.mixer.init()
 
+        pygame.mixer.set_num_channels(10)
+
         self.sounds = { #sfx library
             "jump": pygame.mixer.Sound(resourcePath("assets/music/sfx/jumpSFX.mp3")),
             "land": pygame.mixer.Sound(resourcePath("assets/music/sfx/landSfx.mp3")),
@@ -20,12 +22,17 @@ class audioManager:
             "hover": pygame.mixer.Sound(resourcePath("assets/music/sfx/onHover.mp3")),
             "unhover": pygame.mixer.Sound(resourcePath("assets/music/sfx/onUnhover.mp3")),
             "pause": pygame.mixer.Sound(resourcePath("assets/music/sfx/openPauseMenu.mp3")),
+            "outro": pygame.mixer.Sound(resourcePath("assets/music/sfx/THEBELTOLLS.wav")),
+            "hacked": pygame.mixer.Sound(resourcePath("assets/music/sfx/hackSuccessSfx.mp3")),
+            "caught": pygame.mixer.Sound(resourcePath("assets/music/sfx/caughtSfx.mp3")),
+            "loreGet": pygame.mixer.Sound(resourcePath("assets/music/sfx/loreGet.wav")),
         }
 
         self.currBgm = None
         self.bgmArr = None
         self.bgmSampleRate = pygame.mixer.get_init()[0]
-        self.bgmChannel = pygame.mixer.Channel(7)
+        self.bgmChannel = pygame.mixer.Channel(8)
+        self.walkChannel = pygame.mixer.Channel(9)
 
         self.bgmSpeed = 1.0
         self.bgmSegmentStartSample = 0
@@ -39,8 +46,19 @@ class audioManager:
         self.setBgmVol(self.bgmVol)
 
     def playSfx(self, soundName):
+        if soundName not in self.sounds:
+            return
+        if soundName == "walk":
+            self.walkChannel.play(self.sounds["walk"])
+        else:
+            channel = pygame.mixer.find_channel(True)
+            if channel:
+                channel.play(self.sounds[soundName])
+
+    def getSfxLengthMs(self, soundName):
         if soundName in self.sounds:
-            self.sounds[soundName].play()
+            return int(self.sounds[soundName].get_length() * 1000)
+        return 0
 
     def playBgm(self, filePath, loops=-1, fadeMs=500):
         if self.currBgm == filePath:
@@ -126,8 +144,9 @@ class audioManager:
             self.bgmPaused = False
 
     def stopBgm(self, fadeMs = 500):
-        pygame.mixer.music.fadeout(fadeMs)
+        self.bgmChannel.fadeout(fadeMs)
         self.currBgm = None
+        self.bgmArr = None
 
     def setSfxVol(self, vol):
         self.sfxVol = vol
