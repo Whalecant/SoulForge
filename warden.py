@@ -416,9 +416,13 @@ class Warden:
     def draw(self, surface, camera=None):
         screenRect = camera.apply(self.rect)
 
-
-
         sprite = self.posedDownSprite if (self.posedDown and self.posedDownSprite is not None) else self.sprite
+
+        if not self.defeated:
+            if self.facing == 1:
+                sprite = self.sprite
+            else:
+                sprite = pygame.transform.flip(sprite, 1, 0)
         
         if self.defeated:
             sprite = pygame.transform.rotate(sprite, 90)
