@@ -4,6 +4,7 @@ import random
 import heapq
 import sys
 import os
+import numpy as np
 
 GRAVITY = 0.6
 JUMP_STRENGTH = -15
@@ -23,6 +24,21 @@ RED = (200, 50, 50)
 def resourcePath(relativePath):
     basePath = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
     return os.path.join(basePath, relativePath)
+
+# there's a lot of weird math here I don't get, but basically this https://onthefly.itch.io/the-alchemist/devlog/219218/grayscaling-an-image-with-pygame-and-numpy
+def greyScale(surface: pygame.Surface) -> pygame.Surface:
+    arr = pygame.surfarray.array3d(surface)
+    alpha = pygame.surfarray.array_alpha(surface)
+
+    luma = np.dot(arr[:, :, :3], [0.299, 0.587, 0.114])
+    lumaArr3d = luma[..., np.newaxis]
+    greyRgb = np.repeat(lumaArr3d, 3, axis=2).astype(np.uint8)
+
+    greySurf = pygame.surfarray.make_surface(greyRgb)
+    greySurf = greySurf.convert_alpha()
+    pygame.surfarray.pixels_alpha(greySurf)[:, :] = alpha
+
+    return greySurf
 class Warden:
     def __init__(self, x, y):
         self.rect = pygame.Rect(x, y, 40, 75)
@@ -83,8 +99,10 @@ class Warden:
         self.skipFont = None
 
         self.sprite = pygame.image.load(resourcePath("assets/sprites/Gerard.png")).convert_alpha()
-        self.posedDownSprite = None #will be added later :) ("Yamcha pose")
+        self.posedDownSprite = pygame.image.load(resourcePath("assets/sprites/Gerard_Yamcha.png")).convert_alpha()
+        self.greyPosedDownSprite = greyScale(self.posedDownSprite)
         self.eyeSprite = pygame.image.load(resourcePath("assets/sprites/Gerard_Eyes.png")).convert_alpha()
+        self.angyEyeSprite = pygame.image.load(resourcePath("assets/sprites/Gerard_Eyes_Red.png")).convert_alpha()
 
         scale = 0.75
         newSize = (int(self.sprite.get_width() * scale), int(self.sprite.get_height() * scale))
@@ -413,28 +431,28 @@ class Warden:
 
         self.hitbox.topleft = self.rect.topleft
 
+
+
     def draw(self, surface, camera=None):
         screenRect = camera.apply(self.rect)
 
-        sprite = self.posedDownSprite if (self.posedDown and self.posedDownSprite is not None) else self.sprite
+        sprite = self.greyPosedDownSprite if (self.posedDown and self.posedDownSprite is not None) else self.sprite
 
         if not self.defeated:
             if self.facing == 1:
                 sprite = self.sprite
             else:
                 sprite = pygame.transform.flip(sprite, 1, 0)
-        
-        if self.defeated:
-            sprite = pygame.transform.rotate(sprite, 90)
-            sprite = pygame.transform.flip(sprite, 1, 0) #temp
 
         frameRect = sprite.get_rect(midbottom=screenRect.midbottom)
         surface.blit(sprite, frameRect)
 
+        eyeSprite = self.eyeSprite if (not self.defeated and self.talking) else self.angyEyeSprite
+
         if not self.defeated:
             eyeBob = math.sin(self.hover) * 4 
-            eyeRect = self.eyeSprite.get_rect(center=(frameRect.centerx, frameRect.centery + eyeBob))
-            surface.blit(self.eyeSprite, eyeRect)
+            eyeRect = eyeSprite.get_rect(center=(frameRect.centerx, frameRect.centery + eyeBob))
+            surface.blit(eyeSprite, eyeRect)
 
         #for debugging
         """
